@@ -1,0 +1,33 @@
+{
+  "$comment": "Shared settings for keyforge-protocol. Personal overrides go in settings.local.json (gitignored).",
+  "permissions": {
+    "allow": [
+      "Bash(make *)",
+      "Bash(npx *)",
+      "Bash(npm *)",
+      "Bash(go install *)",
+      "Bash(go-jsonschema *)",
+      "Bash(json2ts *)",
+      "Bash(ajv *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git show *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)"
+    ]
+  }
+}

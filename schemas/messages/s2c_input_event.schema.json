@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/messages/s2c_input_event.json",
+  "title": "S2C: InputEvent",
+  "description": "Pushed by daemon when a hardware event occurs on a subscribed device.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["msg", "payload"],
+  "properties": {
+    "msg":     { "const": "input_event" },
+    "payload": { "$ref": "https://keyforge.dev/schemas/v1/common.json#/$defs/InputEvent" }
+  }
+}

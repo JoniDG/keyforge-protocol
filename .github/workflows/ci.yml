@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli ajv-formats
+      - name: Lint JSON syntax
+        run: |
+          for f in $(find schemas examples -name '*.json'); do
+            echo "Checking $f"
+            python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f"
+          done
+      - name: Validate examples against schemas
+        run: |
+          ajv validate -s schemas/messages/c2s_set_binding.schema.json -d examples/c2s_set_binding.json --spec=draft2020 -r schemas/common.schema.json
+          ajv validate -s schemas/messages/s2c_input_event.schema.json -d examples/s2c_input_event.json --spec=draft2020 -r schemas/common.schema.json

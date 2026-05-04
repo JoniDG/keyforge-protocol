@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/common.json",
+  "title": "Common types",
+  "description": "Shared type definitions referenced by message schemas.",
+  "$defs": {
+    "DeviceID": {
+      "title": "DeviceID",
+      "description": "Stable identifier for a HID device. Format: VID_<hex>_PID_<hex>[_<serial>].",
+      "type": "string",
+      "pattern": "^VID_[0-9A-Fa-f]{4}_PID_[0-9A-Fa-f]{4}(_.+)?$",
+      "examples": ["VID_1234_PID_5678", "VID_1234_PID_5678_ABC123"]
+    },
+    "InputKind": {
+      "title": "InputKind",
+      "description": "Kind of physical input.",
+      "type": "string",
+      "enum": ["key", "encoder"]
+    },
+    "InputAction": {
+      "title": "InputAction",
+      "description": "What happened on the input.",
+      "type": "string",
+      "enum": ["press", "release", "rotate_cw", "rotate_ccw", "click"]
+    },
+    "InputEvent": {
+      "title": "InputEvent",
+      "description": "A single hardware event coming from a HID device.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "kind", "input_id", "action", "timestamp_ms"],
+      "properties": {
+        "device_id": { "$ref": "#/$defs/DeviceID" },
+        "kind":      { "$ref": "#/$defs/InputKind" },
+        "input_id":  {
+          "type": "string",
+          "description": "Logical identifier of the input within the device (e.g. 'K1', 'ENC1').",
+          "minLength": 1
+        },
+        "action":    { "$ref": "#/$defs/InputAction" },
+        "timestamp_ms": {
+          "type": "integer",
+          "description": "Unix epoch in milliseconds when the event was captured by the daemon.",
+          "minimum": 0
+        }
+      }
+    },
+    "Action": {
+      "title": "Action",
+      "description": "An executable action bound to an input.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'.",
+          "examples": ["launch_app", "send_keys", "http_request", "plugin.spotify.play_pause"]
+        },
+        "params": {
+          "type": "object",
+          "description": "Action-specific parameters. Schema depends on 'type'."
+        }
+      }
+    },
+    "Binding": {
+      "title": "Binding",
+      "description": "Maps an input on a specific device to an action.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "input_id", "trigger", "action"],
+      "properties": {
+        "device_id": { "$ref": "#/$defs/DeviceID" },
+        "input_id":  {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger":   { "$ref": "#/$defs/InputAction" },
+        "action":    { "$ref": "#/$defs/Action" }
+      }
+    }
+  }
+}
