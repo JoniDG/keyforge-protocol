@@ -1,0 +1,12 @@
+{
+  "type": "response",
+  "id": "0d2b5a9e-7f1e-4b3a-9b6e-8c4f2a1d3c5b",
+  "ok": true,
+  "data": {
+    "protocol_version": "1",
+    "server": {
+      "name": "keyforged",
+      "version": "0.1.0"
+    }
+  }
+}

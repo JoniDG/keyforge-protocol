@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/list_devices.schema.json",
+  "title": "Method: list_devices",
+  "description": "Returns the HID devices currently known to the daemon. No filters in v1; clients filter client-side if needed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["devices"],
+      "properties": {
+        "devices": {
+          "type": "array",
+          "description": "All currently enumerated HID devices.",
+          "items": { "$ref": "../common.schema.json#/$defs/Device" }
+        }
+      }
+    }
+  }
+}

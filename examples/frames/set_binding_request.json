@@ -1,0 +1,18 @@
+{
+  "type": "request",
+  "id": "2c8f4e3a-9b1d-4c6e-8f0a-7d2b5e8c1f44",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "K1",
+      "trigger": "press",
+      "action": {
+        "type": "launch_app",
+        "params": {
+          "path": "/Applications/Spotify.app"
+        }
+      }
+    }
+  }
+}

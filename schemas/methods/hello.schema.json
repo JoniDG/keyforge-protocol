@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/hello.schema.json",
+  "title": "Method: hello",
+  "description": "Mandatory first request after a WebSocket connection is established. The client declares the protocol_version it speaks. The server either accepts (Response.ok=true with its own identification) or closes the connection with an UNSUPPORTED_PROTOCOL_VERSION error. After a successful hello no further version negotiation happens; the contract is fixed for the session.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "client"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "description": "Major version of the protocol the client implements. Currently '1'.",
+          "const": "1"
+        },
+        "client": { "$ref": "#/$defs/PeerInfo" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "server"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "description": "Protocol version the server agrees to speak for this session.",
+          "const": "1"
+        },
+        "server": { "$ref": "#/$defs/PeerInfo" }
+      }
+    }
+  },
+  "$defs": {
+    "PeerInfo": {
+      "title": "PeerInfo",
+      "description": "Self-identification of a protocol peer (client or server).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Stable identifier of the peer implementation.",
+          "minLength": 1,
+          "examples": ["keyforge-desktop", "keyforged", "keyforge-plugin-spotify"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Semver version of the peer build.",
+          "minLength": 1,
+          "examples": ["0.1.0"]
+        }
+      }
+    }
+  }
+}

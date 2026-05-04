@@ -1,0 +1,6 @@
+{
+  "type": "request",
+  "id": "1f9d2c4b-6e7a-4f8d-90c2-3a5b7e9f0d11",
+  "method": "list_devices",
+  "params": {}
+}

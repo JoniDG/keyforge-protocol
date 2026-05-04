@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://keyforge.dev/schemas/v1/common.json",
+  "$id": "https://keyforge.dev/schemas/v1/common.schema.json",
   "title": "Common types",
   "description": "Shared type definitions referenced by message schemas.",
   "$defs": {
@@ -77,6 +77,45 @@
         },
         "trigger":   { "$ref": "#/$defs/InputAction" },
         "action":    { "$ref": "#/$defs/Action" }
+      }
+    },
+    "Device": {
+      "title": "Device",
+      "description": "A HID device known to the daemon. Returned by list_devices.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "vendor_id", "product_id", "path"],
+      "properties": {
+        "id": { "$ref": "#/$defs/DeviceID" },
+        "vendor_id": {
+          "type": "string",
+          "description": "USB Vendor ID as a 4-digit hexadecimal string (lowercase or uppercase, no '0x' prefix).",
+          "pattern": "^[0-9A-Fa-f]{4}$",
+          "examples": ["1234", "1a86"]
+        },
+        "product_id": {
+          "type": "string",
+          "description": "USB Product ID as a 4-digit hexadecimal string (lowercase or uppercase, no '0x' prefix).",
+          "pattern": "^[0-9A-Fa-f]{4}$",
+          "examples": ["5678", "7523"]
+        },
+        "manufacturer": {
+          "type": "string",
+          "description": "Manufacturer string from the HID descriptor. May be missing on cheap/clone devices."
+        },
+        "product": {
+          "type": "string",
+          "description": "Product name string from the HID descriptor."
+        },
+        "serial_number": {
+          "type": "string",
+          "description": "Serial number string from the HID descriptor. Not all HID devices expose one."
+        },
+        "path": {
+          "type": "string",
+          "description": "OS-opaque path used by the HID library to (re)open the device. Format varies per OS; clients should treat it as an opaque token.",
+          "minLength": 1
+        }
       }
     }
   }
