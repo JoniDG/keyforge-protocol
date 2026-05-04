@@ -1,0 +1,16 @@
+{
+  "params": {
+    "protocol_version": "1",
+    "client": {
+      "name": "keyforge-desktop",
+      "version": "0.1.0"
+    }
+  },
+  "result": {
+    "protocol_version": "1",
+    "server": {
+      "name": "keyforged",
+      "version": "0.1.0"
+    }
+  }
+}

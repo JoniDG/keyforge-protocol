@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/envelope.schema.json",
+  "title": "Envelope",
+  "description": "Wire-level frame exchanged over the WebSocket transport. Every frame is one of three shapes discriminated by the 'type' field. Inner 'params'/'data'/'error' are intentionally generic here; method- and event-specific schemas refine them in a second validation pass.",
+  "oneOf": [
+    { "$ref": "#/$defs/Request" },
+    { "$ref": "#/$defs/Response" },
+    { "$ref": "#/$defs/Event" }
+  ],
+  "$defs": {
+    "Request": {
+      "title": "Request",
+      "description": "Client -> server. Expects a correlated Response with the same id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "method", "params"],
+      "properties": {
+        "type":   { "const": "request" },
+        "id":     {
+          "type": "string",
+          "description": "Client-generated correlation id (UUID v4 or nanoid).",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "description": "Method name in snake_case.",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "params": {
+          "type": "object",
+          "description": "Method-specific arguments. Refined by the schema in schemas/methods/<method>.schema.json."
+        }
+      }
+    },
+    "Response": {
+      "title": "Response",
+      "description": "Server -> client. Discriminated by 'ok'.",
+      "type": "object",
+      "oneOf": [
+        { "$ref": "#/$defs/ResponseOk" },
+        { "$ref": "#/$defs/ResponseErr" }
+      ]
+    },
+    "ResponseOk": {
+      "title": "ResponseOk",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "ok", "data"],
+      "properties": {
+        "type": { "const": "response" },
+        "id":   {
+          "type": "string",
+          "description": "Echo of the original Request.id.",
+          "minLength": 1
+        },
+        "ok":   { "const": true },
+        "data": {
+          "type": "object",
+          "description": "Method-specific result. Refined by the schema in schemas/methods/<method>.schema.json."
+        }
+      }
+    },
+    "ResponseErr": {
+      "title": "ResponseErr",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "ok", "error"],
+      "properties": {
+        "type":  { "const": "response" },
+        "id":    {
+          "type": "string",
+          "description": "Echo of the original Request.id.",
+          "minLength": 1
+        },
+        "ok":    { "const": false },
+        "error": { "$ref": "#/$defs/Error" }
+      }
+    },
+    "Error": {
+      "title": "Error",
+      "description": "Failure payload returned in a Response with ok=false.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable, machine-readable error code in SCREAMING_SNAKE_CASE.",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "examples": ["NOT_FOUND", "INVALID_PARAMS", "UNSUPPORTED_PROTOCOL_VERSION"]
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message. Free form, may be localized in future versions.",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional structured context for debugging."
+        }
+      }
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Server -> client, no correlation. Stream of hardware events or daemon notifications.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name", "data"],
+      "properties": {
+        "type": { "const": "event" },
+        "name": {
+          "type": "string",
+          "description": "Event name in snake_case.",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "data": {
+          "type": "object",
+          "description": "Event-specific payload. Refined by the schema in schemas/events/<name>.schema.json."
+        }
+      }
+    }
+  }
+}

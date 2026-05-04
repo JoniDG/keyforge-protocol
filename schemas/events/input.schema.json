@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/events/input.schema.json",
+  "title": "Event: input",
+  "description": "Pushed by the daemon for every hardware event captured on a connected HID device. High-frequency: encoders may emit many per second.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data"],
+  "properties": {
+    "data": { "$ref": "../common.schema.json#/$defs/InputEvent" }
+  }
+}

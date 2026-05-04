@@ -1,6 +1,5 @@
 {
-  "msg": "input_event",
-  "payload": {
+  "data": {
     "device_id": "VID_1234_PID_5678",
     "kind": "key",
     "input_id": "K1",

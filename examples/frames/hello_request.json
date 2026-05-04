@@ -1,0 +1,12 @@
+{
+  "type": "request",
+  "id": "0d2b5a9e-7f1e-4b3a-9b6e-8c4f2a1d3c5b",
+  "method": "hello",
+  "params": {
+    "protocol_version": "1",
+    "client": {
+      "name": "keyforge-desktop",
+      "version": "0.1.0"
+    }
+  }
+}

@@ -14,26 +14,73 @@ Este repo es la fuente única de verdad de los tipos. Los demás repos consumen 
 ## Layout
 ```
 schemas/
-  common.schema.json           → tipos compartidos (Action, InputEvent, Binding, DeviceID)
-  messages/
-    c2s_set_binding.schema.json    → client → server
-    s2c_input_event.schema.json    → server → client
-    ... (ir agregando uno por mensaje)
-examples/                      → mensajes de ejemplo válidos contra los schemas
+  common.schema.json           → tipos compartidos (Device, InputEvent, Action, Binding, DeviceID, ...)
+  envelope.schema.json         → Request, Response, Event (frame de WebSocket)
+  methods/                     → un schema por método (params + result)
+    list_devices.schema.json
+    set_binding.schema.json
+    ...
+  events/                      → un schema por evento server→client (data)
+    input.schema.json
+    ...
+examples/                      → frames de ejemplo válidos contra los schemas
 dist/                          → output de generadores (gitignored)
   go/                          → tipos Go generados
   ts/                          → tipos TS generados
 Makefile                       → comandos: generate, validate, clean
 ```
 
+## Envelope (wire protocol — DECIDIDO 2026-05-04)
+
+Todo frame WebSocket es uno de **tres shapes** discriminados por `type`. Definidos en `schemas/envelope.schema.json`.
+
+### Request (client → server)
+Cliente pide algo, espera respuesta correlacionada por `id`.
+```json
+{ "type": "request", "id": "<uuid>", "method": "list_devices", "params": {} }
+```
+
+### Response (server → client)
+Server responde a un request. Discriminada por `ok`.
+```json
+{ "type": "response", "id": "<uuid>", "ok": true,  "data": { ... } }
+{ "type": "response", "id": "<uuid>", "ok": false, "error": { "code": "NOT_FOUND", "message": "..." } }
+```
+
+### Event (server → client, sin correlación)
+Stream de hardware o notificaciones del daemon.
+```json
+{ "type": "event", "name": "input", "data": { ... } }
+```
+
+### Reglas del envelope
+
+- `id` es **string** (UUID v4 / nanoid generado por el cliente). Permite que plugins re-emitan requests sin colisión.
+- `method` y `event.name` en **snake_case**. Sin prefijo `c2s_` / `s2c_` — el `type` ya implica dirección.
+- `additionalProperties: false` en envelope, `params`, `data`, `error`.
+- **Schemas separados:** `envelope.schema.json` define la forma genérica con `params`/`data` como `object` abierto; los schemas en `methods/` y `events/` definen el contenido específico. Validación en runtime es en dos pasos (envelope → contenido según `method`/`name`).
+
+### Versionado: handshake `hello` / `welcome`
+
+Primer mensaje del cliente al conectar es un request `hello` con `protocol_version`. Server responde `welcome` (response.ok=true) o cierra la conexión con error. Después del handshake, los frames **no llevan versión** — el contrato está fijado para la sesión.
+
+```json
+// Cliente envía
+{ "type": "request", "id": "1", "method": "hello", "params": { "protocol_version": "1", "client": { "name": "keyforge-desktop", "version": "0.1.0" } } }
+
+// Server responde
+{ "type": "response", "id": "1", "ok": true, "data": { "server": { "name": "keyforged", "version": "0.1.0" }, "protocol_version": "1" } }
+```
+
 ## Convenciones de schemas
 
-- Un schema JSON por mensaje, en `schemas/messages/`.
-- Prefijo `c2s_` (client→server) o `s2c_` (server→client) para que sea evidente la dirección.
-- Tipos compartidos en `schemas/common.schema.json`, se referencian con `$ref`.
-- `$id` único por schema, `title` legible, `description` con propósito.
+- **Un schema por método** en `schemas/methods/<name>.schema.json`. El schema define un objeto con `params` y `result` (cada uno es a su vez un schema de objeto).
+- **Un schema por evento** en `schemas/events/<name>.schema.json`. El schema define solo `data`.
+- Tipos compartidos en `schemas/common.schema.json`, referenciados con `$ref`.
+- `$id` único por schema, con path alineado al filesystem (ej: `https://keyforge.dev/schemas/v1/methods/list_devices.schema.json`). Esta alineación permite que `$ref` relativos a archivo (`../common.schema.json#/$defs/Device`) resuelvan igual contra el `$id` (para `ajv`) y contra el path (para `go-jsonschema`, que no indexa por `$id`).
+- Cross-file `$ref`s usan **paths relativos al archivo** (`../common.schema.json#/$defs/...`), no URLs absolutas.
 - Toda propiedad `required` declarada explícitamente. **Nunca** `additionalProperties: true`.
-- Versionar el schema vía `$id` (ej: `https://keyforge.dev/schemas/v1/common.json`). Bumpear major al romper compatibilidad.
+- Versionar vía `$id` (path `/v1/`). Bumpear major al romper compatibilidad — y el cliente lo señala en el `hello`.
 
 ## Comandos
 

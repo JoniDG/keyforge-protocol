@@ -1,0 +1,16 @@
+{
+  "params": {},
+  "result": {
+    "devices": [
+      {
+        "id": "VID_1234_PID_5678_ABC123",
+        "vendor_id": "1234",
+        "product_id": "5678",
+        "manufacturer": "Generic",
+        "product": "Macro Keypad 10K2E",
+        "serial_number": "ABC123",
+        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000/USB2.0-CRW@14100000"
+      }
+    ]
+  }
+}

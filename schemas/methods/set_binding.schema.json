@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/set_binding.schema.json",
+  "title": "Method: set_binding",
+  "description": "Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding"],
+      "properties": {
+        "binding": { "$ref": "../common.schema.json#/$defs/Binding" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Empty acknowledgement object. Reserved for future fields (e.g. server-assigned binding id) without breaking the schema.",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}
