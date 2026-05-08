@@ -24,8 +24,10 @@ schemas/
     input.schema.json
     ...
 examples/                      → frames de ejemplo válidos contra los schemas
-dist/                          → output de generadores (gitignored)
-  go/                          → tipos Go generados
+go/                            → submódulo Go publicado (CHECKED IN, no gitignored)
+  go.mod                       → module github.com/JoniDG/keyforge-protocol/go
+  protocol/types.go            → tipos Go generados (consumibles via `go get`)
+dist/                          → output del generador TS (gitignored)
   ts/                          → tipos TS generados
 Makefile                       → comandos: generate, validate, clean
 ```
@@ -85,7 +87,7 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 ## Comandos
 
 ```bash
-make generate    # genera tipos Go (dist/go/) y TS (dist/ts/) desde schemas/
+make generate    # genera tipos Go (go/protocol/) y TS (dist/ts/) desde schemas/
 make validate    # valida los archivos en examples/ contra sus schemas
 make clean       # borra dist/
 ```
