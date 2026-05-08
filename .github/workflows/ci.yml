@@ -40,3 +40,10 @@ jobs:
 
       - name: Generate types (smoke test)
         run: make generate
+
+      - name: Check generated Go types are up to date
+        run: git diff --exit-code go/
+
+      - name: Build Go submodule
+        working-directory: go
+        run: go build ./...
