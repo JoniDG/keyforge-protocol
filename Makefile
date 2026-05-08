@@ -3,7 +3,7 @@
 SCHEMAS_DIR := schemas
 EXAMPLES_DIR := examples
 DIST_DIR    := dist
-GO_OUT      := $(DIST_DIR)/go
+GO_OUT      := go/protocol
 TS_OUT      := $(DIST_DIR)/ts
 
 # Go-installed binaries (go-jsonschema) live in $GOPATH/bin which is not always
@@ -28,7 +28,7 @@ check-tools: ## Verify required generators are installed
 
 generate: check-tools generate-go generate-ts ## Generate Go and TS types from schemas
 
-generate-go: ## Generate Go types
+generate-go: ## Generate Go types into the go/ submodule
 	@mkdir -p $(GO_OUT)
 	$(GOBIN)/go-jsonschema -p protocol -o $(GO_OUT)/types.go $(ALL_SCHEMAS)
 	@echo "✓ Generated Go types in $(GO_OUT)/"
