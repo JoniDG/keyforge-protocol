@@ -27,9 +27,12 @@ examples/                      → frames de ejemplo válidos contra los schemas
 go/                            → submódulo Go publicado (CHECKED IN, no gitignored)
   go.mod                       → module github.com/JoniDG/keyforge-protocol/go
   protocol/types.go            → tipos Go generados (consumibles via `go get`)
-dist/                          → output del generador TS (gitignored)
-  ts/                          → tipos TS generados
-Makefile                       → comandos: generate, validate, clean
+ts/                            → npm package publicado (CHECKED IN, no gitignored)
+  package.json                 → name: @keyforge/protocol
+  tsconfig.json
+  src/                         → tipos TS generados (auto, checked in)
+  dist/                        → tsc output (.d.ts + .js, gitignored)
+Makefile                       → comandos: generate, build-ts, validate, clean
 ```
 
 ## Envelope (wire protocol — DECIDIDO 2026-05-04)
@@ -87,9 +90,10 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 ## Comandos
 
 ```bash
-make generate    # genera tipos Go (go/protocol/) y TS (dist/ts/) desde schemas/
+make generate    # genera tipos Go (go/protocol/) y TS (ts/src/) desde schemas/
+make build-ts    # cd ts && npm install && tsc → ts/dist/ (.d.ts + .js)
 make validate    # valida los archivos en examples/ contra sus schemas
-make clean       # borra dist/
+make clean       # borra ts/dist/
 ```
 
 **Herramientas requeridas (instalar bajo demanda):**
@@ -100,9 +104,10 @@ npm install -g json-schema-to-typescript ajv-cli
 
 ## Para Claude — cómo ayudarme acá
 
-- **Cuando cree o modifique un schema:** correr `make generate` y verificar que `make validate` pasa.
+- **Cuando cree o modifique un schema:** correr `make generate` y verificar que `make validate` pasa. Recordá commitear el diff resultante en `go/protocol/` **y** `ts/src/` — si no, el drift check de CI falla.
 - **Cuando agregue un mensaje nuevo:** crear también un `examples/<nombre>.json` que sirva de smoke test.
-- **Nunca** modificar archivos en `dist/` — son auto-generados.
+- **Cuando agregues/cambies un método o evento:** correr también `make build-ts` para verificar que el barrel auto-generado (`ts/src/index.ts`) sigue compilando con el nuevo top-level `Method*`/`Event*`.
+- **Nunca** modificar archivos en `ts/src/` ni en `go/protocol/` a mano — son auto-generados (la única excepción son los hand-maintained `ts/package.json`, `ts/tsconfig.json`, `ts/README.md`, `ts/LICENSE`).
 - **Cambios breaking** en un schema: bumpear el `$id` a una versión nueva, no romper la actual sin avisar.
 
 ## Reglas duras
@@ -111,7 +116,7 @@ npm install -g json-schema-to-typescript ajv-cli
   - LICENSE / copyright / contacto público: **Jonathan Daniel Gomez** / `jonathan.d.gomez98@gmail.com`
   - Commits / GitHub: **JoniDG** / `jonathan.d.gomez98+github@gmail.com`
 - 🚨 **Antes de cada commit y push:** verificar `git config user.name` = `JoniDG` y `git config user.email` = `jonathan.d.gomez98+github@gmail.com`.
-- ❌ **NO commitees** archivos en `dist/` — están en `.gitignore`.
+- ❌ **NO commitees** archivos en `ts/dist/` ni `ts/node_modules/` — están en `.gitignore`.
 - ❌ **NO uses** `additionalProperties: true` en schemas — debilita el contrato.
 - ✅ Cada cambio de schema requiere ejemplo en `examples/`.
 

@@ -1,5 +1,7 @@
-# Generated artifacts
+# Generated / build artifacts
 dist/
+ts/dist/
+ts/node_modules/
 
 # Claude personal (no compartir)
 .claude/settings.local.json

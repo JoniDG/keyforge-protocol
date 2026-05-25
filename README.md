@@ -43,7 +43,11 @@ examples/
 go/                      # Go submodule (checked in; consumed via `go get`)
   go.mod                 # module github.com/JoniDG/keyforge-protocol/go
   protocol/              # generated Go types
-dist/                    # generated TS types (git-ignored)
+ts/                      # TS npm package (checked in; consumed via `npm install`)
+  package.json           # name: @keyforge/protocol
+  tsconfig.json
+  src/                   # generated TS source (auto-generated, checked in)
+  dist/                  # tsc output: .d.ts + .js (git-ignored)
 ```
 
 ## Quickstart
@@ -60,7 +64,7 @@ make validate
 make generate
 ```
 
-Generated types land in `go/protocol/types.go` (checked in) and `dist/ts/*.ts` (git-ignored). The Go output is committed so downstream Go modules can `go get` it; TypeScript output is regenerated locally.
+Generated types land in `go/protocol/types.go` and `ts/src/*.ts` — both checked in so downstream consumers can pull them without running the generators locally.
 
 > **Note:** `make` automatically prepends `$(go env GOPATH)/bin` to `PATH`, so `go-jsonschema` is found even if you have not added `~/go/bin` to your shell `PATH`.
 
@@ -101,6 +105,44 @@ make generate-go             # writes go/protocol/types.go
 ```
 
 CI runs both steps and fails the build if `git diff --exit-code go/` is dirty — i.e. someone changed a schema without committing the regenerated types.
+
+## Consuming from TypeScript
+
+The generated TypeScript types are published as an npm package at [`ts/`](./ts), named `@keyforge/protocol`. The package is types-only — every export is a type alias or an interface; the compiled `.js` artifacts are empty modules.
+
+While the package is unpublished, KeyForge workspace consumers install it from the source tree:
+
+```bash
+npm install file:../keyforge-protocol/ts
+```
+
+```ts
+import type {
+  Envelope,
+  Request,
+  Response,
+  Device,
+  InputEvent,
+  MethodHello,
+  MethodListDevices,
+  EventInput,
+} from '@keyforge/protocol';
+```
+
+The root barrel re-exports shared types from `common` and `envelope`, plus the top-level `Method*` / `Event*` type from each method and event file. Inner payload shapes are reachable through the parent type (e.g. `MethodListDevices['result']['devices']`).
+
+### Versioning by tags
+
+Mirroring the Go submodule, TS releases are tagged with the path prefix: `ts/vX.Y.Z` (e.g. `ts/v0.1.0`). Schema-major bumps (the `/v1/` segment in `$id`) drive a major bump in both packages; non-breaking schema additions bump only the minor/patch.
+
+### Regenerating locally
+
+```bash
+make generate-ts             # writes ts/src/*
+make build-ts                # tsc → ts/dist/ (.d.ts + .js)
+```
+
+CI runs both and fails the build if `git diff --exit-code ts/src/` is dirty.
 
 ## Versioning
 

@@ -41,9 +41,16 @@ jobs:
       - name: Generate types (smoke test)
         run: make generate
 
-      - name: Check generated Go types are up to date
-        run: git diff --exit-code go/
+      - name: Check generated types are up to date
+        run: git diff --exit-code go/ ts/src/
 
       - name: Build Go submodule
         working-directory: go
         run: go build ./...
+
+      - name: Build TS package
+        working-directory: ts
+        run: |
+          npm ci
+          npm run build
+          npm run typecheck
