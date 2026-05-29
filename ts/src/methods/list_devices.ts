@@ -9,6 +9,10 @@
  * Stable identifier for a HID device. Format: VID_<hex>_PID_<hex>[_<serial>].
  */
 export type DeviceID = string;
+/**
+ * Kind of physical input.
+ */
+export type InputKind = "key" | "encoder";
 
 /**
  * Returns the HID devices currently known to the daemon. No filters in v1; clients filter client-side if needed.
@@ -54,4 +58,22 @@ export interface Device {
    * OS-opaque path used by the HID library to (re)open the device. Format varies per OS; clients should treat it as an opaque token.
    */
   path: string;
+  /**
+   * Inputs (keys/encoders) the daemon knows this device exposes. Empty for unrecognized devices the daemon can't map.
+   */
+  inputs: Input[];
+}
+/**
+ * A single physical input exposed by a device (a key or an encoder).
+ */
+export interface Input {
+  /**
+   * Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches InputEvent.input_id and Binding.input_id.
+   */
+  id: string;
+  kind: InputKind;
+  /**
+   * Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.
+   */
+  label?: string;
 }

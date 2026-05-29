@@ -81,7 +81,7 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 
 - **Un schema por método** en `schemas/methods/<name>.schema.json`. El schema define un objeto con `params` y `result` (cada uno es a su vez un schema de objeto).
 - **Un schema por evento** en `schemas/events/<name>.schema.json`. El schema define solo `data`.
-- Tipos compartidos en `schemas/common.schema.json`, referenciados con `$ref`.
+- Tipos compartidos en `schemas/common.schema.json`, referenciados con `$ref`. Si un tipo lo usa **un solo método/evento**, puede vivir como `$defs` method-local en su propio schema (ej: `ActionDescriptor`/`ParamSpec` en `list_actions`); promoverlo a `common` recién cuando un segundo schema lo necesite. Ambos generadores (`go-jsonschema` y `json-schema-to-typescript`) resuelven `$defs` locales sin problema.
 - `$id` único por schema, con path alineado al filesystem (ej: `https://keyforge.dev/schemas/v1/methods/list_devices.schema.json`). Esta alineación permite que `$ref` relativos a archivo (`../common.schema.json#/$defs/Device`) resuelvan igual contra el `$id` (para `ajv`) y contra el path (para `go-jsonschema`, que no indexa por `$id`).
 - Cross-file `$ref`s usan **paths relativos al archivo** (`../common.schema.json#/$defs/...`), no URLs absolutas.
 - Toda propiedad `required` declarada explícitamente. **Nunca** `additionalProperties: true`.

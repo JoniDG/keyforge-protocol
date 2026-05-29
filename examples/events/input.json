@@ -2,7 +2,7 @@
   "data": {
     "device_id": "VID_1234_PID_5678",
     "kind": "key",
-    "input_id": "K1",
+    "input_id": "key_0x04",
     "action": "press",
     "timestamp_ms": 1746374400000
   }

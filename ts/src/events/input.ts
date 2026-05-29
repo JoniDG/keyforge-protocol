@@ -31,7 +31,7 @@ export interface InputEvent {
   device_id: DeviceID;
   kind: InputKind;
   /**
-   * Logical identifier of the input within the device (e.g. 'K1', 'ENC1').
+   * Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches Device.inputs[].id.
    */
   input_id: string;
   action: InputAction;
