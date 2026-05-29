@@ -28,10 +28,11 @@ See [`schemas/envelope.schema.json`](schemas/envelope.schema.json) for the forma
 
 ```
 schemas/
-  common.schema.json     # shared types: Device, DeviceID, InputEvent, Action, Binding, ...
+  common.schema.json     # shared types: Device, DeviceID, Input, InputEvent, Action, Binding, ...
   envelope.schema.json   # request / response / event frames
   methods/               # one schema per RPC method (params + result)
     hello.schema.json
+    list_actions.schema.json
     list_devices.schema.json
     set_binding.schema.json
   events/                # one schema per server-to-client event (data)
@@ -122,8 +123,10 @@ import type {
   Request,
   Response,
   Device,
+  Input,
   InputEvent,
   MethodHello,
+  MethodListActions,
   MethodListDevices,
   EventInput,
 } from '@keyforge/protocol';

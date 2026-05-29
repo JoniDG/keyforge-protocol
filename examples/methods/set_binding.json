@@ -2,7 +2,7 @@
   "params": {
     "binding": {
       "device_id": "VID_1234_PID_5678",
-      "input_id": "K1",
+      "input_id": "key_0x04",
       "trigger": "press",
       "action": {
         "type": "launch_app",

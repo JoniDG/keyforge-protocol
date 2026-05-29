@@ -1,0 +1,21 @@
+{
+  "params": {},
+  "result": {
+    "actions": [
+      {
+        "type": "launch_app",
+        "name": "Launch app",
+        "params": [
+          { "name": "path", "label": "Application path", "type": "string", "required": true }
+        ]
+      },
+      {
+        "type": "send_keys",
+        "name": "Send keys",
+        "params": [
+          { "name": "keys", "label": "Key combo", "type": "string", "required": true, "placeholder": "Ctrl+Shift+S" }
+        ]
+      }
+    ]
+  }
+}

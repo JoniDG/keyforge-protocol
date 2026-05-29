@@ -18,6 +18,51 @@ type Action struct {
 	Type string `json:"type" yaml:"type" mapstructure:"type"`
 }
 
+// Describes a bindable action type and the params it accepts.
+type ActionDescriptor struct {
+	// Optional longer description of what the action does.
+	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty" mapstructure:"description,omitempty"`
+
+	// Human-friendly action name for the UI.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+
+	// Params this action accepts, in display order.
+	Params []ParamSpec `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Action type, as used in Action.type (e.g. 'launch_app').
+	Type string `json:"type" yaml:"type" mapstructure:"type"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActionDescriptor) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in ActionDescriptor: required")
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ActionDescriptor: required")
+	}
+	if _, ok := raw["type"]; raw != nil && !ok {
+		return fmt.Errorf("field type in ActionDescriptor: required")
+	}
+	type Plain ActionDescriptor
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Type)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "type", 1)
+	}
+	*j = ActionDescriptor(plain)
+	return nil
+}
+
 // Action-specific parameters. Schema depends on 'type'.
 type ActionParams map[string]interface{}
 
@@ -89,6 +134,10 @@ type Device struct {
 	// Id corresponds to the JSON schema field "id".
 	Id DeviceID `json:"id" yaml:"id" mapstructure:"id"`
 
+	// Inputs (keys/encoders) the daemon knows this device exposes. Empty for
+	// unrecognized devices the daemon can't map.
+	Inputs []Input `json:"inputs" yaml:"inputs" mapstructure:"inputs"`
+
 	// Manufacturer string from the HID descriptor. May be missing on cheap/clone
 	// devices.
 	Manufacturer *string `json:"manufacturer,omitempty,omitzero" yaml:"manufacturer,omitempty" mapstructure:"manufacturer,omitempty"`
@@ -137,6 +186,9 @@ func (j *Device) UnmarshalJSON(value []byte) error {
 	}
 	if _, ok := raw["id"]; raw != nil && !ok {
 		return fmt.Errorf("field id in Device: required")
+	}
+	if _, ok := raw["inputs"]; raw != nil && !ok {
+		return fmt.Errorf("field inputs in Device: required")
 	}
 	if _, ok := raw["path"]; raw != nil && !ok {
 		return fmt.Errorf("field path in Device: required")
@@ -350,6 +402,20 @@ func (j *HelloSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// A single physical input exposed by a device (a key or an encoder).
+type Input struct {
+	// Logical identifier of the input within the device (e.g. 'key_0x04',
+	// 'encoder_0'). Matches InputEvent.input_id and Binding.input_id.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Kind corresponds to the JSON schema field "kind".
+	Kind InputKind `json:"kind" yaml:"kind" mapstructure:"kind"`
+
+	// Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients
+	// fall back to id.
+	Label *string `json:"label,omitempty,omitzero" yaml:"label,omitempty" mapstructure:"label,omitempty"`
+}
+
 type InputAction string
 
 const InputActionClick InputAction = "click"
@@ -394,7 +460,8 @@ type InputEvent struct {
 	// DeviceId corresponds to the JSON schema field "device_id".
 	DeviceId DeviceID `json:"device_id" yaml:"device_id" mapstructure:"device_id"`
 
-	// Logical identifier of the input within the device (e.g. 'K1', 'ENC1').
+	// Logical identifier of the input within the device (e.g. 'key_0x04',
+	// 'encoder_0'). Matches Device.inputs[].id.
 	InputId string `json:"input_id" yaml:"input_id" mapstructure:"input_id"`
 
 	// Kind corresponds to the JSON schema field "kind".
@@ -495,6 +562,91 @@ func (j *InputSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Input) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in Input: required")
+	}
+	if _, ok := raw["kind"]; raw != nil && !ok {
+		return fmt.Errorf("field kind in Input: required")
+	}
+	type Plain Input
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	if plain.Label != nil && utf8.RuneCountInString(string(*plain.Label)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "label", 1)
+	}
+	*j = Input(plain)
+	return nil
+}
+
+// Returns the catalog of actions the daemon can bind to inputs, including the
+// param shape each action needs so a client can render a config form. No params in
+// v1.
+type ListActionsSchemaJson struct {
+	// No parameters in v1.
+	Params ListActionsSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ListActionsSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type ListActionsSchemaJsonParams map[string]interface{}
+
+type ListActionsSchemaJsonResult struct {
+	// All actions available to bind. Built-ins plus any registered plugin actions.
+	Actions []ActionDescriptor `json:"actions" yaml:"actions" mapstructure:"actions"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListActionsSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["actions"]; raw != nil && !ok {
+		return fmt.Errorf("field actions in ListActionsSchemaJsonResult: required")
+	}
+	type Plain ListActionsSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListActionsSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListActionsSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ListActionsSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ListActionsSchemaJson: required")
+	}
+	type Plain ListActionsSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListActionsSchemaJson(plain)
+	return nil
+}
+
 // Returns the HID devices currently known to the daemon. No filters in v1; clients
 // filter client-side if needed.
 type ListDevicesSchemaJson struct {
@@ -549,6 +701,85 @@ func (j *ListDevicesSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = ListDevicesSchemaJson(plain)
+	return nil
+}
+
+// Describes one action parameter so a client can render an input for it.
+type ParamSpec struct {
+	// Human-friendly field label.
+	Label string `json:"label" yaml:"label" mapstructure:"label"`
+
+	// Param key written into Action.params.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+
+	// Optional placeholder/example shown in the input.
+	Placeholder *string `json:"placeholder,omitempty,omitzero" yaml:"placeholder,omitempty" mapstructure:"placeholder,omitempty"`
+
+	// Required corresponds to the JSON schema field "required".
+	Required bool `json:"required" yaml:"required" mapstructure:"required"`
+
+	// Param value type. Only 'string' in v1.
+	Type ParamSpecType `json:"type" yaml:"type" mapstructure:"type"`
+}
+
+type ParamSpecType string
+
+const ParamSpecTypeString ParamSpecType = "string"
+
+var enumValues_ParamSpecType = []interface{}{
+	"string",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ParamSpecType) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_ParamSpecType {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_ParamSpecType, v)
+	}
+	*j = ParamSpecType(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ParamSpec) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["label"]; raw != nil && !ok {
+		return fmt.Errorf("field label in ParamSpec: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in ParamSpec: required")
+	}
+	if _, ok := raw["required"]; raw != nil && !ok {
+		return fmt.Errorf("field required in ParamSpec: required")
+	}
+	if _, ok := raw["type"]; raw != nil && !ok {
+		return fmt.Errorf("field type in ParamSpec: required")
+	}
+	type Plain ParamSpec
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Label)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "label", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = ParamSpec(plain)
 	return nil
 }
 

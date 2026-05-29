@@ -34,7 +34,7 @@
         "kind":      { "$ref": "#/$defs/InputKind" },
         "input_id":  {
           "type": "string",
-          "description": "Logical identifier of the input within the device (e.g. 'K1', 'ENC1').",
+          "description": "Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches Device.inputs[].id.",
           "minLength": 1
         },
         "action":    { "$ref": "#/$defs/InputAction" },
@@ -79,12 +79,32 @@
         "action":    { "$ref": "#/$defs/Action" }
       }
     },
+    "Input": {
+      "title": "Input",
+      "description": "A single physical input exposed by a device (a key or an encoder).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches InputEvent.input_id and Binding.input_id.",
+          "minLength": 1
+        },
+        "kind": { "$ref": "#/$defs/InputKind" },
+        "label": {
+          "type": "string",
+          "description": "Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.",
+          "minLength": 1
+        }
+      }
+    },
     "Device": {
       "title": "Device",
       "description": "A HID device known to the daemon. Returned by list_devices.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "vendor_id", "product_id", "path"],
+      "required": ["id", "vendor_id", "product_id", "path", "inputs"],
       "properties": {
         "id": { "$ref": "#/$defs/DeviceID" },
         "vendor_id": {
@@ -115,6 +135,11 @@
           "type": "string",
           "description": "OS-opaque path used by the HID library to (re)open the device. Format varies per OS; clients should treat it as an opaque token.",
           "minLength": 1
+        },
+        "inputs": {
+          "type": "array",
+          "description": "Inputs (keys/encoders) the daemon knows this device exposes. Empty for unrecognized devices the daemon can't map.",
+          "items": { "$ref": "#/$defs/Input" }
         }
       }
     }

@@ -43,7 +43,7 @@ export interface InputEvent {
   device_id: DeviceID;
   kind: InputKind;
   /**
-   * Logical identifier of the input within the device (e.g. 'K1', 'ENC1').
+   * Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches Device.inputs[].id.
    */
   input_id: string;
   action: InputAction;
@@ -83,6 +83,23 @@ export interface Binding {
   action: Action;
 }
 /**
+ * A single physical input exposed by a device (a key or an encoder).
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "Input".
+ */
+export interface Input {
+  /**
+   * Logical identifier of the input within the device (e.g. 'key_0x04', 'encoder_0'). Matches InputEvent.input_id and Binding.input_id.
+   */
+  id: string;
+  kind: InputKind;
+  /**
+   * Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.
+   */
+  label?: string;
+}
+/**
  * A HID device known to the daemon. Returned by list_devices.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -114,4 +131,8 @@ export interface Device {
    * OS-opaque path used by the HID library to (re)open the device. Format varies per OS; clients should treat it as an opaque token.
    */
   path: string;
+  /**
+   * Inputs (keys/encoders) the daemon knows this device exposes. Empty for unrecognized devices the daemon can't map.
+   */
+  inputs: Input[];
 }

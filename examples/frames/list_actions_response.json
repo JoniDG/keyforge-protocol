@@ -1,0 +1,23 @@
+{
+  "type": "response",
+  "id": "7c3e1a9f-2b4d-4e6a-8c1f-9d0b2a4f6e83",
+  "ok": true,
+  "data": {
+    "actions": [
+      {
+        "type": "launch_app",
+        "name": "Launch app",
+        "params": [
+          { "name": "path", "label": "Application path", "type": "string", "required": true }
+        ]
+      },
+      {
+        "type": "send_keys",
+        "name": "Send keys",
+        "params": [
+          { "name": "keys", "label": "Key combo", "type": "string", "required": true, "placeholder": "Ctrl+Shift+S" }
+        ]
+      }
+    ]
+  }
+}

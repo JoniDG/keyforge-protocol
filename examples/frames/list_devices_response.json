@@ -11,13 +11,19 @@
         "manufacturer": "Generic",
         "product": "Macro Keypad 10K2E",
         "serial_number": "ABC123",
-        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000/USB2.0-CRW@14100000"
+        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000/USB2.0-CRW@14100000",
+        "inputs": [
+          { "id": "key_0x04", "kind": "key", "label": "Key 1" },
+          { "id": "key_0x05", "kind": "key", "label": "Key 2" },
+          { "id": "encoder_0", "kind": "encoder", "label": "Encoder" }
+        ]
       },
       {
         "id": "VID_1a86_PID_7523",
         "vendor_id": "1a86",
         "product_id": "7523",
-        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS02@14200000"
+        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS02@14200000",
+        "inputs": []
       }
     ]
   }
