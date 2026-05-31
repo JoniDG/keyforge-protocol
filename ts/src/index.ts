@@ -5,6 +5,7 @@ export * from './envelope.js';
 
 export type { MethodHello } from './methods/hello.js';
 export type { MethodListActions } from './methods/list_actions.js';
+export type { MethodListBindings } from './methods/list_bindings.js';
 export type { MethodListDevices } from './methods/list_devices.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
 

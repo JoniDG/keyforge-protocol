@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/list_bindings.schema.json",
+  "title": "Method: list_bindings",
+  "description": "Returns all bindings the daemon currently has configured. Read-side counterpart of set_binding. No filters in v1; clients filter client-side if needed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bindings"],
+      "properties": {
+        "bindings": {
+          "type": "array",
+          "description": "All currently configured bindings.",
+          "items": { "$ref": "../common.schema.json#/$defs/Binding" }
+        }
+      }
+    }
+  }
+}
