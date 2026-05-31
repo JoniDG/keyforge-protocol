@@ -647,6 +647,63 @@ func (j *ListActionsSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Returns all bindings the daemon currently has configured. Read-side counterpart
+// of set_binding. No filters in v1; clients filter client-side if needed.
+type ListBindingsSchemaJson struct {
+	// No parameters in v1.
+	Params ListBindingsSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ListBindingsSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type ListBindingsSchemaJsonParams map[string]interface{}
+
+type ListBindingsSchemaJsonResult struct {
+	// All currently configured bindings.
+	Bindings []Binding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListBindingsSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["bindings"]; raw != nil && !ok {
+		return fmt.Errorf("field bindings in ListBindingsSchemaJsonResult: required")
+	}
+	type Plain ListBindingsSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListBindingsSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListBindingsSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ListBindingsSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ListBindingsSchemaJson: required")
+	}
+	type Plain ListBindingsSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListBindingsSchemaJson(plain)
+	return nil
+}
+
 // Returns the HID devices currently known to the daemon. No filters in v1; clients
 // filter client-side if needed.
 type ListDevicesSchemaJson struct {

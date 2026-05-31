@@ -1,6 +1,6 @@
 {
   "name": "@keyforge/protocol",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TypeScript types for the KeyForge WebSocket protocol, generated from the canonical JSON Schema contracts.",
   "keywords": ["keyforge", "protocol", "types", "json-schema", "websocket"],
   "license": "Apache-2.0",

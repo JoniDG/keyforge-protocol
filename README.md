@@ -33,6 +33,7 @@ schemas/
   methods/               # one schema per RPC method (params + result)
     hello.schema.json
     list_actions.schema.json
+    list_bindings.schema.json
     list_devices.schema.json
     set_binding.schema.json
   events/                # one schema per server-to-client event (data)

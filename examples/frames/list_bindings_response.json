@@ -1,0 +1,31 @@
+{
+  "type": "response",
+  "id": "7c1e0a3d-2b4f-4a6e-8d10-5f7b9c1e2a44",
+  "ok": true,
+  "data": {
+    "bindings": [
+      {
+        "device_id": "VID_1234_PID_5678",
+        "input_id": "key_0x04",
+        "trigger": "press",
+        "action": {
+          "type": "launch_app",
+          "params": {
+            "path": "/Applications/Spotify.app"
+          }
+        }
+      },
+      {
+        "device_id": "VID_1234_PID_5678",
+        "input_id": "encoder_0",
+        "trigger": "rotate_cw",
+        "action": {
+          "type": "launch_app",
+          "params": {
+            "path": "/Applications/Calculator.app"
+          }
+        }
+      }
+    ]
+  }
+}
