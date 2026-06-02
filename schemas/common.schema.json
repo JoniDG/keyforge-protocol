@@ -79,6 +79,30 @@
         "action":    { "$ref": "#/$defs/Action" }
       }
     },
+    "Profile": {
+      "title": "Profile",
+      "description": "A named set of bindings. The daemon keeps exactly one profile active at a time; switching profiles swaps the active binding set.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "bindings"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable server-generated identifier for the profile.",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-friendly profile name.",
+          "minLength": 1
+        },
+        "bindings": {
+          "type": "array",
+          "description": "Bindings that belong to this profile.",
+          "items": { "$ref": "#/$defs/Binding" }
+        }
+      }
+    },
     "Input": {
       "title": "Input",
       "description": "A single physical input exposed by a device (a key or an encoder).",
