@@ -1,0 +1,30 @@
+{
+  "params": {},
+  "result": {
+    "profiles": [
+      {
+        "id": "p_default",
+        "name": "Default",
+        "bindings": [
+          {
+            "device_id": "VID_1234_PID_5678",
+            "input_id": "key_0x04",
+            "trigger": "press",
+            "action": {
+              "type": "launch_app",
+              "params": {
+                "path": "/Applications/Spotify.app"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "p_7f3a2b10",
+        "name": "Streaming",
+        "bindings": []
+      }
+    ],
+    "active_profile_id": "p_default"
+  }
+}

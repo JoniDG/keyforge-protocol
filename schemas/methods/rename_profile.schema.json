@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/rename_profile.schema.json",
+  "title": "Method: rename_profile",
+  "description": "Renames an existing profile. Does not affect its bindings or the active profile.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the profile to rename.",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "description": "New human-friendly name for the profile.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Empty acknowledgement object. Reserved for future fields without breaking the schema.",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}

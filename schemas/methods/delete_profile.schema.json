@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/delete_profile.schema.json",
+  "title": "Method: delete_profile",
+  "description": "Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the profile to delete.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_profile_id"],
+      "properties": {
+        "active_profile_id": {
+          "type": "string",
+          "description": "Identifier of the profile that is active after the deletion. Unchanged unless the deleted profile was the active one.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

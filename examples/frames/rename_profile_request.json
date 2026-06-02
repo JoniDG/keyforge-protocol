@@ -1,0 +1,9 @@
+{
+  "type": "request",
+  "id": "b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  "method": "rename_profile",
+  "params": {
+    "id": "p_7f3a2b10",
+    "name": "Live Streaming"
+  }
+}

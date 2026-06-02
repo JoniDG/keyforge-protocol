@@ -3,10 +3,15 @@
 export * from './common.js';
 export * from './envelope.js';
 
+export type { MethodCreateProfile } from './methods/create_profile.js';
+export type { MethodDeleteProfile } from './methods/delete_profile.js';
+export type { MethodDuplicateProfile } from './methods/duplicate_profile.js';
 export type { MethodHello } from './methods/hello.js';
 export type { MethodListActions } from './methods/list_actions.js';
 export type { MethodListBindings } from './methods/list_bindings.js';
 export type { MethodListDevices } from './methods/list_devices.js';
+export type { MethodListProfiles } from './methods/list_profiles.js';
+export type { MethodRenameProfile } from './methods/rename_profile.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
 
 export type { EventInput } from './events/input.js';

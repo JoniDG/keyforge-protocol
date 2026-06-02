@@ -129,6 +129,171 @@ func (j *Binding) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Creates a new profile. The server generates the id and returns the profile with
+// an empty bindings array.
+type CreateProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params CreateProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result CreateProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type CreateProfileSchemaJsonParams struct {
+	// Human-friendly name for the new profile.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *CreateProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in CreateProfileSchemaJsonParams: required")
+	}
+	type Plain CreateProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = CreateProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type CreateProfileSchemaJsonResult struct {
+	// Profile corresponds to the JSON schema field "profile".
+	Profile Profile `json:"profile" yaml:"profile" mapstructure:"profile"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *CreateProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["profile"]; raw != nil && !ok {
+		return fmt.Errorf("field profile in CreateProfileSchemaJsonResult: required")
+	}
+	type Plain CreateProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = CreateProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *CreateProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in CreateProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in CreateProfileSchemaJson: required")
+	}
+	type Plain CreateProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = CreateProfileSchemaJson(plain)
+	return nil
+}
+
+// Deletes a profile. The daemon never deletes the last remaining profile. Deleting
+// the active profile reassigns the active one, so the resulting active profile id
+// is always returned.
+type DeleteProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params DeleteProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result DeleteProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type DeleteProfileSchemaJsonParams struct {
+	// Identifier of the profile to delete.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DeleteProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in DeleteProfileSchemaJsonParams: required")
+	}
+	type Plain DeleteProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	*j = DeleteProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type DeleteProfileSchemaJsonResult struct {
+	// Identifier of the profile that is active after the deletion. Unchanged unless
+	// the deleted profile was the active one.
+	ActiveProfileId string `json:"active_profile_id" yaml:"active_profile_id" mapstructure:"active_profile_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DeleteProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["active_profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field active_profile_id in DeleteProfileSchemaJsonResult: required")
+	}
+	type Plain DeleteProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ActiveProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "active_profile_id", 1)
+	}
+	*j = DeleteProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DeleteProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in DeleteProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in DeleteProfileSchemaJson: required")
+	}
+	type Plain DeleteProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = DeleteProfileSchemaJson(plain)
+	return nil
+}
+
 // A HID device known to the daemon. Returned by list_devices.
 type Device struct {
 	// Id corresponds to the JSON schema field "id".
@@ -214,6 +379,96 @@ func (j *Device) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s pattern match: must match %s", "VendorId", `^[0-9A-Fa-f]{4}$`)
 	}
 	*j = Device(plain)
+	return nil
+}
+
+// Creates a copy of an existing profile under a new name. The server generates a
+// new id and copies the source profile's bindings. Does not change the active
+// profile.
+type DuplicateProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params DuplicateProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result DuplicateProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type DuplicateProfileSchemaJsonParams struct {
+	// Identifier of the source profile to copy bindings from.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Human-friendly name for the new (duplicated) profile.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DuplicateProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in DuplicateProfileSchemaJsonParams: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in DuplicateProfileSchemaJsonParams: required")
+	}
+	type Plain DuplicateProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = DuplicateProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type DuplicateProfileSchemaJsonResult struct {
+	// Profile corresponds to the JSON schema field "profile".
+	Profile Profile `json:"profile" yaml:"profile" mapstructure:"profile"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DuplicateProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["profile"]; raw != nil && !ok {
+		return fmt.Errorf("field profile in DuplicateProfileSchemaJsonResult: required")
+	}
+	type Plain DuplicateProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = DuplicateProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DuplicateProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in DuplicateProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in DuplicateProfileSchemaJson: required")
+	}
+	type Plain DuplicateProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = DuplicateProfileSchemaJson(plain)
 	return nil
 }
 
@@ -761,6 +1016,73 @@ func (j *ListDevicesSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Returns all profiles the daemon currently has, along with the id of the active
+// one. The active profile id is tracked at the daemon level and only exposed here.
+type ListProfilesSchemaJson struct {
+	// No parameters in v1.
+	Params ListProfilesSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ListProfilesSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type ListProfilesSchemaJsonParams map[string]interface{}
+
+type ListProfilesSchemaJsonResult struct {
+	// Identifier of the currently active profile. Always references one of the
+	// profiles in the array.
+	ActiveProfileId string `json:"active_profile_id" yaml:"active_profile_id" mapstructure:"active_profile_id"`
+
+	// All profiles known to the daemon.
+	Profiles []Profile `json:"profiles" yaml:"profiles" mapstructure:"profiles"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListProfilesSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["active_profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field active_profile_id in ListProfilesSchemaJsonResult: required")
+	}
+	if _, ok := raw["profiles"]; raw != nil && !ok {
+		return fmt.Errorf("field profiles in ListProfilesSchemaJsonResult: required")
+	}
+	type Plain ListProfilesSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ActiveProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "active_profile_id", 1)
+	}
+	*j = ListProfilesSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListProfilesSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ListProfilesSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ListProfilesSchemaJson: required")
+	}
+	type Plain ListProfilesSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListProfilesSchemaJson(plain)
+	return nil
+}
+
 // Describes one action parameter so a client can render an input for it.
 type ParamSpec struct {
 	// Human-friendly field label.
@@ -873,6 +1195,119 @@ func (j *PeerInfo) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "version", 1)
 	}
 	*j = PeerInfo(plain)
+	return nil
+}
+
+// A named set of bindings. The daemon keeps exactly one profile active at a time;
+// switching profiles swaps the active binding set.
+type Profile struct {
+	// Bindings that belong to this profile.
+	Bindings []Binding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
+
+	// Stable server-generated identifier for the profile.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Human-friendly profile name.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Profile) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["bindings"]; raw != nil && !ok {
+		return fmt.Errorf("field bindings in Profile: required")
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in Profile: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in Profile: required")
+	}
+	type Plain Profile
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = Profile(plain)
+	return nil
+}
+
+// Renames an existing profile. Does not affect its bindings or the active profile.
+type RenameProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params RenameProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Empty acknowledgement object. Reserved for future fields without breaking the
+	// schema.
+	Result RenameProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type RenameProfileSchemaJsonParams struct {
+	// Identifier of the profile to rename.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// New human-friendly name for the profile.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *RenameProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in RenameProfileSchemaJsonParams: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in RenameProfileSchemaJsonParams: required")
+	}
+	type Plain RenameProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = RenameProfileSchemaJsonParams(plain)
+	return nil
+}
+
+// Empty acknowledgement object. Reserved for future fields without breaking the
+// schema.
+type RenameProfileSchemaJsonResult map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *RenameProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in RenameProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in RenameProfileSchemaJson: required")
+	}
+	type Plain RenameProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = RenameProfileSchemaJson(plain)
 	return nil
 }
 

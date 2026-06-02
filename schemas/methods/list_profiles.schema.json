@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/list_profiles.schema.json",
+  "title": "Method: list_profiles",
+  "description": "Returns all profiles the daemon currently has, along with the id of the active one. The active profile id is tracked at the daemon level and only exposed here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profiles", "active_profile_id"],
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "description": "All profiles known to the daemon.",
+          "items": { "$ref": "../common.schema.json#/$defs/Profile" }
+        },
+        "active_profile_id": {
+          "type": "string",
+          "description": "Identifier of the currently active profile. Always references one of the profiles in the array.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

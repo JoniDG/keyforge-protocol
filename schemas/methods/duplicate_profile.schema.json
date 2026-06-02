@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/duplicate_profile.schema.json",
+  "title": "Method: duplicate_profile",
+  "description": "Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings. Does not change the active profile.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the source profile to copy bindings from.",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-friendly name for the new (duplicated) profile.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile"],
+      "properties": {
+        "profile": { "$ref": "../common.schema.json#/$defs/Profile" }
+      }
+    }
+  }
+}

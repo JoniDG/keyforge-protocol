@@ -1,0 +1,12 @@
+{
+  "params": {
+    "name": "Streaming"
+  },
+  "result": {
+    "profile": {
+      "id": "p_7f3a2b10",
+      "name": "Streaming",
+      "bindings": []
+    }
+  }
+}

@@ -83,6 +83,26 @@ export interface Binding {
   action: Action;
 }
 /**
+ * A named set of bindings. The daemon keeps exactly one profile active at a time; switching profiles swaps the active binding set.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "Profile".
+ */
+export interface Profile {
+  /**
+   * Stable server-generated identifier for the profile.
+   */
+  id: string;
+  /**
+   * Human-friendly profile name.
+   */
+  name: string;
+  /**
+   * Bindings that belong to this profile.
+   */
+  bindings: Binding[];
+}
+/**
  * A single physical input exposed by a device (a key or an encoder).
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
