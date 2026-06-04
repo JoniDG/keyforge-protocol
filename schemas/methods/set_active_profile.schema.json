@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/set_active_profile.schema.json",
+  "title": "Method: set_active_profile",
+  "description": "Sets which profile is active. The active profile is the one the binding editor reads and writes; switching it swaps the live binding set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the profile to activate.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_profile_id"],
+      "properties": {
+        "active_profile_id": {
+          "type": "string",
+          "description": "Identifier of the now-active profile. Echoes the requested id on success.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
