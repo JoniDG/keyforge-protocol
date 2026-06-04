@@ -1460,6 +1460,89 @@ func (j *ResponseOk) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Sets which profile is active. The active profile is the one the binding editor
+// reads and writes; switching it swaps the live binding set.
+type SetActiveProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params SetActiveProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result SetActiveProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type SetActiveProfileSchemaJsonParams struct {
+	// Identifier of the profile to activate.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetActiveProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in SetActiveProfileSchemaJsonParams: required")
+	}
+	type Plain SetActiveProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	*j = SetActiveProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type SetActiveProfileSchemaJsonResult struct {
+	// Identifier of the now-active profile. Echoes the requested id on success.
+	ActiveProfileId string `json:"active_profile_id" yaml:"active_profile_id" mapstructure:"active_profile_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetActiveProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["active_profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field active_profile_id in SetActiveProfileSchemaJsonResult: required")
+	}
+	type Plain SetActiveProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ActiveProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "active_profile_id", 1)
+	}
+	*j = SetActiveProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetActiveProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in SetActiveProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in SetActiveProfileSchemaJson: required")
+	}
+	type Plain SetActiveProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetActiveProfileSchemaJson(plain)
+	return nil
+}
+
 // Creates or updates a binding (input -> action) on a device. The pair (device_id,
 // input_id, trigger) is the unique key; calling this method with an existing key
 // replaces the previous action.

@@ -12,6 +12,7 @@ export type { MethodListBindings } from './methods/list_bindings.js';
 export type { MethodListDevices } from './methods/list_devices.js';
 export type { MethodListProfiles } from './methods/list_profiles.js';
 export type { MethodRenameProfile } from './methods/rename_profile.js';
+export type { MethodSetActiveProfile } from './methods/set_active_profile.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
 
 export type { EventInput } from './events/input.js';
