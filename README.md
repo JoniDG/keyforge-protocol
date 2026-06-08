@@ -46,7 +46,7 @@ go/                      # Go submodule (checked in; consumed via `go get`)
   go.mod                 # module github.com/JoniDG/keyforge-protocol/go
   protocol/              # generated Go types
 ts/                      # TS npm package (checked in; consumed via `npm install`)
-  package.json           # name: @keyforge/protocol
+  package.json           # name: @jdg-keyforge/protocol
   tsconfig.json
   src/                   # generated TS source (auto-generated, checked in)
   dist/                  # tsc output: .d.ts + .js (git-ignored)
@@ -110,7 +110,7 @@ CI runs both steps and fails the build if `git diff --exit-code go/` is dirty �
 
 ## Consuming from TypeScript
 
-The generated TypeScript types are published as an npm package at [`ts/`](./ts), named `@keyforge/protocol`. The package is types-only — every export is a type alias or an interface; the compiled `.js` artifacts are empty modules.
+The generated TypeScript types are published as an npm package at [`ts/`](./ts), named `@jdg-keyforge/protocol`. The package is types-only — every export is a type alias or an interface; the compiled `.js` artifacts are empty modules.
 
 While the package is unpublished, KeyForge workspace consumers install it from the source tree:
 
@@ -130,7 +130,7 @@ import type {
   MethodListActions,
   MethodListDevices,
   EventInput,
-} from '@keyforge/protocol';
+} from '@jdg-keyforge/protocol';
 ```
 
 The root barrel re-exports shared types from `common` and `envelope`, plus the top-level `Method*` / `Event*` type from each method and event file. Inner payload shapes are reachable through the parent type (e.g. `MethodListDevices['result']['devices']`).

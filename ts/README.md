@@ -1,4 +1,4 @@
-# @keyforge/protocol
+# @jdg-keyforge/protocol
 
 > TypeScript types for the [KeyForge](https://github.com/JoniDG/keyforge) WebSocket protocol, generated from the canonical JSON Schema contracts in this repository.
 
@@ -7,7 +7,7 @@ This package contains only type declarations — there is no runtime code. It mi
 ## Install
 
 ```bash
-npm install @keyforge/protocol
+npm install @jdg-keyforge/protocol
 ```
 
 While the package is unpublished, consumers in the KeyForge workspace can install it directly from the source tree:
@@ -29,7 +29,7 @@ import type {
   MethodHello,
   MethodListDevices,
   EventInput,
-} from '@keyforge/protocol';
+} from '@jdg-keyforge/protocol';
 ```
 
 The root `index` re-exports shared types from [`common`](./src/common.ts) and [`envelope`](./src/envelope.ts) plus the top-level `Method*` / `Event*` types for each method and event. Inner payload shapes (e.g. `MethodListDevices['result']`) are reachable through the parent type.
