@@ -28,7 +28,7 @@ go/                            → submódulo Go publicado (CHECKED IN, no gitig
   go.mod                       → module github.com/JoniDG/keyforge-protocol/go
   protocol/types.go            → tipos Go generados (consumibles via `go get`)
 ts/                            → npm package publicado (CHECKED IN, no gitignored)
-  package.json                 → name: @keyforge/protocol
+  package.json                 → name: @jdg-keyforge/protocol
   tsconfig.json
   src/                         → tipos TS generados (auto, checked in)
   dist/                        → tsc output (.d.ts + .js, gitignored)
