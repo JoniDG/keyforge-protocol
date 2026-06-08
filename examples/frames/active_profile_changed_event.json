@@ -1,0 +1,7 @@
+{
+  "type": "event",
+  "name": "active_profile_changed",
+  "data": {
+    "active_profile_id": "p_7f3a2b10"
+  }
+}
