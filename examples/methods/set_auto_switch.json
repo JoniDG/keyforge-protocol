@@ -1,0 +1,28 @@
+{
+  "params": {
+    "enabled": true,
+    "rules": [
+      {
+        "app": "com.spotify.client",
+        "profile_id": "p_7f3a2b10"
+      },
+      {
+        "app": "code",
+        "profile_id": "p_default"
+      }
+    ]
+  },
+  "result": {
+    "enabled": true,
+    "rules": [
+      {
+        "app": "com.spotify.client",
+        "profile_id": "p_7f3a2b10"
+      },
+      {
+        "app": "code",
+        "profile_id": "p_default"
+      }
+    ]
+  }
+}

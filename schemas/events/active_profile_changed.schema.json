@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/events/active_profile_changed.schema.json",
+  "title": "Event: active_profile_changed",
+  "description": "Pushed by the daemon whenever the active profile changes on the server's own initiative (today: auto-switch by foreground app). Lets clients stay in sync without polling. Not emitted in response to a client's set_active_profile request, which already returns the new id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_profile_id"],
+      "properties": {
+        "active_profile_id": {
+          "type": "string",
+          "description": "Identifier of the now-active profile.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

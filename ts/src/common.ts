@@ -156,3 +156,19 @@ export interface Device {
    */
   inputs: Input[];
 }
+/**
+ * Maps a foreground application to the profile that should become active while that app is frontmost. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "AutoSwitchRule".
+ */
+export interface AutoSwitchRule {
+  /**
+   * OS-native application identifier: bundle id on macOS, executable name on Linux/Windows. Opaque string, not portable across OSes; the daemon matches it verbatim against the frontmost app.
+   */
+  app: string;
+  /**
+   * Identifier of the profile to activate when this app is frontmost.
+   */
+  profile_id: string;
+}

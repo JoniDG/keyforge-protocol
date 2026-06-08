@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/get_auto_switch.schema.json",
+  "title": "Method: get_auto_switch",
+  "description": "Returns the current auto-switch configuration: the master toggle and the full set of app-to-profile rules. The daemon uses these to switch the active profile based on the foreground application.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "rules"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Master toggle. When false, the daemon ignores the rules and never auto-switches."
+        },
+        "rules": {
+          "type": "array",
+          "description": "App-to-profile rules currently configured.",
+          "items": { "$ref": "../common.schema.json#/$defs/AutoSwitchRule" }
+        }
+      }
+    }
+  }
+}

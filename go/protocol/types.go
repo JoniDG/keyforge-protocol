@@ -84,6 +84,99 @@ func (j *Action) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Pushed by the daemon whenever the active profile changes on the server's own
+// initiative (today: auto-switch by foreground app). Lets clients stay in sync
+// without polling. Not emitted in response to a client's set_active_profile
+// request, which already returns the new id.
+type ActiveProfileChangedSchemaJson struct {
+	// Data corresponds to the JSON schema field "data".
+	Data ActiveProfileChangedSchemaJsonData `json:"data" yaml:"data" mapstructure:"data"`
+}
+
+type ActiveProfileChangedSchemaJsonData struct {
+	// Identifier of the now-active profile.
+	ActiveProfileId string `json:"active_profile_id" yaml:"active_profile_id" mapstructure:"active_profile_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActiveProfileChangedSchemaJsonData) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["active_profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field active_profile_id in ActiveProfileChangedSchemaJsonData: required")
+	}
+	type Plain ActiveProfileChangedSchemaJsonData
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ActiveProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "active_profile_id", 1)
+	}
+	*j = ActiveProfileChangedSchemaJsonData(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActiveProfileChangedSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["data"]; raw != nil && !ok {
+		return fmt.Errorf("field data in ActiveProfileChangedSchemaJson: required")
+	}
+	type Plain ActiveProfileChangedSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ActiveProfileChangedSchemaJson(plain)
+	return nil
+}
+
+// Maps a foreground application to the profile that should become active while
+// that app is frontmost. When the frontmost app matches no rule, the active
+// profile is left unchanged (sticky behavior); there is no fallback profile.
+type AutoSwitchRule struct {
+	// OS-native application identifier: bundle id on macOS, executable name on
+	// Linux/Windows. Opaque string, not portable across OSes; the daemon matches it
+	// verbatim against the frontmost app.
+	App string `json:"app" yaml:"app" mapstructure:"app"`
+
+	// Identifier of the profile to activate when this app is frontmost.
+	ProfileId string `json:"profile_id" yaml:"profile_id" mapstructure:"profile_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *AutoSwitchRule) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["app"]; raw != nil && !ok {
+		return fmt.Errorf("field app in AutoSwitchRule: required")
+	}
+	if _, ok := raw["profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field profile_id in AutoSwitchRule: required")
+	}
+	type Plain AutoSwitchRule
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.App)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "app", 1)
+	}
+	if utf8.RuneCountInString(string(plain.ProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "profile_id", 1)
+	}
+	*j = AutoSwitchRule(plain)
+	return nil
+}
+
 // Maps an input on a specific device to an action.
 type Binding struct {
 	// Action corresponds to the JSON schema field "action".
@@ -556,6 +649,71 @@ func (j *Event) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s pattern match: must match %s", "Name", `^[a-z][a-z0-9_]*$`)
 	}
 	*j = Event(plain)
+	return nil
+}
+
+// Returns the current auto-switch configuration: the master toggle and the full
+// set of app-to-profile rules. The daemon uses these to switch the active profile
+// based on the foreground application.
+type GetAutoSwitchSchemaJson struct {
+	// No parameters in v1.
+	Params GetAutoSwitchSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result GetAutoSwitchSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type GetAutoSwitchSchemaJsonParams map[string]interface{}
+
+type GetAutoSwitchSchemaJsonResult struct {
+	// Master toggle. When false, the daemon ignores the rules and never
+	// auto-switches.
+	Enabled bool `json:"enabled" yaml:"enabled" mapstructure:"enabled"`
+
+	// App-to-profile rules currently configured.
+	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetAutoSwitchSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["enabled"]; raw != nil && !ok {
+		return fmt.Errorf("field enabled in GetAutoSwitchSchemaJsonResult: required")
+	}
+	if _, ok := raw["rules"]; raw != nil && !ok {
+		return fmt.Errorf("field rules in GetAutoSwitchSchemaJsonResult: required")
+	}
+	type Plain GetAutoSwitchSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = GetAutoSwitchSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in GetAutoSwitchSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in GetAutoSwitchSchemaJson: required")
+	}
+	type Plain GetAutoSwitchSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = GetAutoSwitchSchemaJson(plain)
 	return nil
 }
 
@@ -1540,6 +1698,98 @@ func (j *SetActiveProfileSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetActiveProfileSchemaJson(plain)
+	return nil
+}
+
+// Replaces the entire auto-switch configuration in one shot (bulk set, not
+// per-rule CRUD): the master toggle and the full rule set. The result echoes the
+// persisted state.
+type SetAutoSwitchSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params SetAutoSwitchSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result SetAutoSwitchSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type SetAutoSwitchSchemaJsonParams struct {
+	// Master toggle. When false, the daemon ignores the rules and never
+	// auto-switches.
+	Enabled bool `json:"enabled" yaml:"enabled" mapstructure:"enabled"`
+
+	// Full replacement set of app-to-profile rules. Any previously stored rules are
+	// discarded.
+	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetAutoSwitchSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["enabled"]; raw != nil && !ok {
+		return fmt.Errorf("field enabled in SetAutoSwitchSchemaJsonParams: required")
+	}
+	if _, ok := raw["rules"]; raw != nil && !ok {
+		return fmt.Errorf("field rules in SetAutoSwitchSchemaJsonParams: required")
+	}
+	type Plain SetAutoSwitchSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetAutoSwitchSchemaJsonParams(plain)
+	return nil
+}
+
+type SetAutoSwitchSchemaJsonResult struct {
+	// Master toggle as persisted. Echoes the requested value on success.
+	Enabled bool `json:"enabled" yaml:"enabled" mapstructure:"enabled"`
+
+	// Rules as persisted. Echoes the requested set on success.
+	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetAutoSwitchSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["enabled"]; raw != nil && !ok {
+		return fmt.Errorf("field enabled in SetAutoSwitchSchemaJsonResult: required")
+	}
+	if _, ok := raw["rules"]; raw != nil && !ok {
+		return fmt.Errorf("field rules in SetAutoSwitchSchemaJsonResult: required")
+	}
+	type Plain SetAutoSwitchSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetAutoSwitchSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in SetAutoSwitchSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in SetAutoSwitchSchemaJson: required")
+	}
+	type Plain SetAutoSwitchSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetAutoSwitchSchemaJson(plain)
 	return nil
 }
 

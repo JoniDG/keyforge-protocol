@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/set_auto_switch.schema.json",
+  "title": "Method: set_auto_switch",
+  "description": "Replaces the entire auto-switch configuration in one shot (bulk set, not per-rule CRUD): the master toggle and the full rule set. The result echoes the persisted state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "rules"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Master toggle. When false, the daemon ignores the rules and never auto-switches."
+        },
+        "rules": {
+          "type": "array",
+          "description": "Full replacement set of app-to-profile rules. Any previously stored rules are discarded.",
+          "items": { "$ref": "../common.schema.json#/$defs/AutoSwitchRule" }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "rules"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Master toggle as persisted. Echoes the requested value on success."
+        },
+        "rules": {
+          "type": "array",
+          "description": "Rules as persisted. Echoes the requested set on success.",
+          "items": { "$ref": "../common.schema.json#/$defs/AutoSwitchRule" }
+        }
+      }
+    }
+  }
+}
