@@ -1,0 +1,31 @@
+{
+  "type": "request",
+  "id": "b2e4d3c5-6f7a-48b9-0d1e-2c3f4a5b6d7e",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x06",
+      "trigger": "press",
+      "action": {
+        "type": "macro",
+        "params": {
+          "steps": [
+            {
+              "type": "send_keys",
+              "params": { "keys": "Ctrl+C" }
+            },
+            {
+              "type": "delay",
+              "params": { "ms": 100 }
+            },
+            {
+              "type": "send_keys",
+              "params": { "keys": "Ctrl+V" }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

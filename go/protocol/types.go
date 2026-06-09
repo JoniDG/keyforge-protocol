@@ -10,7 +10,9 @@ import "unicode/utf8"
 
 // An executable action bound to an input.
 type Action struct {
-	// Action-specific parameters. Schema depends on 'type'.
+	// Action-specific parameters. Schema depends on 'type'. The daemon validates them
+	// against the per-type ActionParams definition (e.g. DelayActionParams for type
+	// 'delay').
 	Params ActionParams `json:"params,omitempty,omitzero" yaml:"params,omitempty" mapstructure:"params,omitempty"`
 
 	// Action type. Built-ins are well-known; plugin actions use
@@ -63,7 +65,9 @@ func (j *ActionDescriptor) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
-// Action-specific parameters. Schema depends on 'type'.
+// Action-specific parameters. Schema depends on 'type'. The daemon validates them
+// against the per-type ActionParams definition (e.g. DelayActionParams for type
+// 'delay').
 type ActionParams map[string]interface{}
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -299,6 +303,34 @@ func (j *CreateProfileSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = CreateProfileSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'delay' action: waits for the given duration. Mainly
+// useful as a step inside a macro.
+type DelayActionParams struct {
+	// Milliseconds to wait before continuing.
+	Ms int `json:"ms" yaml:"ms" mapstructure:"ms"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DelayActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["ms"]; raw != nil && !ok {
+		return fmt.Errorf("field ms in DelayActionParams: required")
+	}
+	type Plain DelayActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if 0 > plain.Ms {
+		return fmt.Errorf("field %s: must be >= %v", "ms", 0)
+	}
+	*j = DelayActionParams(plain)
 	return nil
 }
 
@@ -1002,6 +1034,33 @@ func (j *Input) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Params for the built-in 'launch_app' action: launches an application.
+type LaunchAppActionParams struct {
+	// Absolute path to the application or executable to launch.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *LaunchAppActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in LaunchAppActionParams: required")
+	}
+	type Plain LaunchAppActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = LaunchAppActionParams(plain)
+	return nil
+}
+
 // Returns the catalog of actions the daemon can bind to inputs, including the
 // param shape each action needs so a client can render a config form. No params in
 // v1.
@@ -1238,6 +1297,35 @@ func (j *ListProfilesSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = ListProfilesSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'macro' action: runs a sequence of actions in order. The
+// schema allows any Action as a step; the daemon rejects nested macros (a step
+// whose type is 'macro').
+type MacroActionParams struct {
+	// Actions to run in order. Must contain at least one step.
+	Steps []Action `json:"steps" yaml:"steps" mapstructure:"steps"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *MacroActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["steps"]; raw != nil && !ok {
+		return fmt.Errorf("field steps in MacroActionParams: required")
+	}
+	type Plain MacroActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Steps != nil && len(plain.Steps) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "steps", 1)
+	}
+	*j = MacroActionParams(plain)
 	return nil
 }
 
@@ -1615,6 +1703,33 @@ func (j *ResponseOk) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
 	}
 	*j = ResponseOk(plain)
+	return nil
+}
+
+// Params for the built-in 'send_keys' action: types a key combination.
+type SendKeysActionParams struct {
+	// Key combination to send, e.g. 'Ctrl+Shift+S'.
+	Keys string `json:"keys" yaml:"keys" mapstructure:"keys"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SendKeysActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["keys"]; raw != nil && !ok {
+		return fmt.Errorf("field keys in SendKeysActionParams: required")
+	}
+	type Plain SendKeysActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Keys)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "keys", 1)
+	}
+	*j = SendKeysActionParams(plain)
 	return nil
 }
 
