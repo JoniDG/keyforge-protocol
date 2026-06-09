@@ -64,11 +64,61 @@ export interface Action {
    */
   type: string;
   /**
-   * Action-specific parameters. Schema depends on 'type'.
+   * Action-specific parameters. Schema depends on 'type'. The daemon validates them against the per-type ActionParams definition (e.g. DelayActionParams for type 'delay').
    */
   params?: {
     [k: string]: unknown;
   };
+}
+/**
+ * Params for the built-in 'send_keys' action: types a key combination.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "SendKeysActionParams".
+ */
+export interface SendKeysActionParams {
+  /**
+   * Key combination to send, e.g. 'Ctrl+Shift+S'.
+   */
+  keys: string;
+}
+/**
+ * Params for the built-in 'launch_app' action: launches an application.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "LaunchAppActionParams".
+ */
+export interface LaunchAppActionParams {
+  /**
+   * Absolute path to the application or executable to launch.
+   */
+  path: string;
+}
+/**
+ * Params for the built-in 'delay' action: waits for the given duration. Mainly useful as a step inside a macro.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "DelayActionParams".
+ */
+export interface DelayActionParams {
+  /**
+   * Milliseconds to wait before continuing.
+   */
+  ms: number;
+}
+/**
+ * Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects nested macros (a step whose type is 'macro').
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "MacroActionParams".
+ */
+export interface MacroActionParams {
+  /**
+   * Actions to run in order. Must contain at least one step.
+   *
+   * @minItems 1
+   */
+  steps: [Action, ...Action[]];
 }
 /**
  * Maps an input on a specific device to an action.

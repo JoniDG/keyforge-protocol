@@ -44,7 +44,7 @@ export interface Action {
    */
   type: string;
   /**
-   * Action-specific parameters. Schema depends on 'type'.
+   * Action-specific parameters. Schema depends on 'type'. The daemon validates them against the per-type ActionParams definition (e.g. DelayActionParams for type 'delay').
    */
   params?: {
     [k: string]: unknown;

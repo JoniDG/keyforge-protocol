@@ -1,0 +1,18 @@
+{
+  "type": "request",
+  "id": "a1f3c2d4-5e6b-47a8-9c0d-1b2e3f4a5c6d",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x05",
+      "trigger": "press",
+      "action": {
+        "type": "delay",
+        "params": {
+          "ms": 250
+        }
+      }
+    }
+  }
+}

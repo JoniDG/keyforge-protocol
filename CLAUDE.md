@@ -86,6 +86,7 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 - Cross-file `$ref`s usan **paths relativos al archivo** (`../common.schema.json#/$defs/...`), no URLs absolutas.
 - Toda propiedad `required` declarada explícitamente. **Nunca** `additionalProperties: true`.
 - Versionar vía `$id` (path `/v1/`). Bumpear major al romper compatibilidad — y el cliente lo señala en el `hello`.
+- **Params de acciones built-in:** `Action.params` queda como `object` abierto (genérico). Los params concretos de cada acción built-in viven como `$defs` en `common.schema.json` con el nombre `<Type>ActionParams` (ej: `DelayActionParams`, `MacroActionParams`, `SendKeysActionParams`, `LaunchAppActionParams`). El daemon valida `Action.params` contra el `$def` que corresponde al `type` — mismo esquema two-step que envelope→método. El schema **no** discrimina por `type`; reglas semánticas (ej: un step de `macro` no puede ser otro `macro`) se aplican en `keyforge-core`, no acá. Acciones que componen otras (`macro`) referencian el `$def` genérico `#/$defs/Action` para sus sub-acciones.
 
 ## Comandos
 

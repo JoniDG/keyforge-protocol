@@ -55,11 +55,68 @@
         "type": {
           "type": "string",
           "description": "Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'.",
-          "examples": ["launch_app", "send_keys", "http_request", "plugin.spotify.play_pause"]
+          "examples": ["launch_app", "send_keys", "delay", "macro", "http_request", "plugin.spotify.play_pause"]
         },
         "params": {
           "type": "object",
-          "description": "Action-specific parameters. Schema depends on 'type'."
+          "description": "Action-specific parameters. Schema depends on 'type'. The daemon validates them against the per-type ActionParams definition (e.g. DelayActionParams for type 'delay')."
+        }
+      }
+    },
+    "SendKeysActionParams": {
+      "title": "SendKeysActionParams",
+      "description": "Params for the built-in 'send_keys' action: types a key combination.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keys"],
+      "properties": {
+        "keys": {
+          "type": "string",
+          "description": "Key combination to send, e.g. 'Ctrl+Shift+S'.",
+          "minLength": 1
+        }
+      }
+    },
+    "LaunchAppActionParams": {
+      "title": "LaunchAppActionParams",
+      "description": "Params for the built-in 'launch_app' action: launches an application.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the application or executable to launch.",
+          "minLength": 1
+        }
+      }
+    },
+    "DelayActionParams": {
+      "title": "DelayActionParams",
+      "description": "Params for the built-in 'delay' action: waits for the given duration. Mainly useful as a step inside a macro.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ms"],
+      "properties": {
+        "ms": {
+          "type": "integer",
+          "description": "Milliseconds to wait before continuing.",
+          "minimum": 0
+        }
+      }
+    },
+    "MacroActionParams": {
+      "title": "MacroActionParams",
+      "description": "Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects nested macros (a step whose type is 'macro').",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["steps"],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "description": "Actions to run in order. Must contain at least one step.",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Action" }
         }
       }
     },
