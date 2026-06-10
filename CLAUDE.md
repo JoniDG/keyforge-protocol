@@ -110,6 +110,12 @@ npm install -g json-schema-to-typescript ajv-cli
 - **Cuando agregues/cambies un método o evento:** correr también `make build-ts` para verificar que el barrel auto-generado (`ts/src/index.ts`) sigue compilando con el nuevo top-level `Method*`/`Event*`.
 - **Nunca** modificar archivos en `ts/src/` ni en `go/protocol/` a mano — son auto-generados (la única excepción son los hand-maintained `ts/package.json`, `ts/tsconfig.json`, `ts/README.md`, `ts/LICENSE`).
 - **Cambios breaking** en un schema: bumpear el `$id` a una versión nueva, no romper la actual sin avisar.
+- **Flujo de cierre tras el merge (orden estricto).** Este repo publica a npm, así que el cierre de una unidad de trabajo tiene un paso extra que la regla cross-repo de `KEYFORGE-PLAN.md` no contempla. Cuando el owner confirme que el PR fue mergeado:
+  1. Limpieza post-merge de la rama (`git checkout main && git pull --prune` + `git branch -d/-D <rama>`).
+  2. Crear y pushear los tags anotados `go/vX.Y.Z` y `ts/vX.Y.Z` sobre el commit de merge.
+  3. **Esperar a que el owner publique la nueva versión en npm** (`npm publish` lo corre él — el login es interactivo). El registry no está autenticado en esta sesión; ofrecer un `--dry-run` para verificar el tarball, pero **no** dar por cerrada la unidad hasta que el owner confirme el publish.
+  4. **Recién después del publish confirmado**, actualizar `KEYFORGE-PLAN.md` (fila de `keyforge-protocol`, checkboxes de la fase, Work log con fecha, cabecera). Actualizar el plan antes del publish corrompe el estado: deja registrado un `@jdg-keyforge/protocol X.Y.Z` que todavía no existe en el registry y que los repos consumidores no pueden instalar.
+  Si una versión no necesita publish a npm (cambio que no toca el package TS), saltear el paso 3 y decirlo explícitamente.
 
 ## Reglas duras
 
