@@ -1,0 +1,24 @@
+{
+  "type": "response",
+  "id": "b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  "ok": true,
+  "data": {
+    "profile": {
+      "id": "p_9c1d8e42",
+      "name": "Streaming",
+      "bindings": [
+        {
+          "device_id": "VID_1234_PID_5678",
+          "input_id": "key_0x04",
+          "trigger": "press",
+          "action": {
+            "type": "launch_app",
+            "params": {
+              "path": "/Applications/Spotify.app"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

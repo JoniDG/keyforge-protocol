@@ -153,6 +153,30 @@ export interface Profile {
   bindings: Binding[];
 }
 /**
+ * Portable, on-disk representation of a profile, written by export_profile and read by import_profile. Carries no server-local id: the id is meaningless outside the originating installation, so import always assigns a fresh one. The 'version' field lets readers detect and adapt to format changes.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "ExportedProfile".
+ */
+export interface ExportedProfile {
+  /**
+   * Magic marker identifying the file as a KeyForge profile export.
+   */
+  format: "keyforge.profile";
+  /**
+   * Export format version. Currently 1; bumped if the on-disk shape changes.
+   */
+  version: 1;
+  /**
+   * Human-friendly profile name.
+   */
+  name: string;
+  /**
+   * Bindings that belong to the exported profile.
+   */
+  bindings: Binding[];
+}
+/**
  * A single physical input exposed by a device (a key or an encoder).
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema

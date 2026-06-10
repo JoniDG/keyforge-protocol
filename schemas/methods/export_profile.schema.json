@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/export_profile.schema.json",
+  "title": "Method: export_profile",
+  "description": "Serializes the profile identified by 'id' as a portable ExportedProfile document and writes it to 'path' on the daemon host's filesystem. The exported file omits the server-local id. Returns the path that was written.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier of the profile to export.",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Filesystem path on the daemon host where the exported file is written.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Echo of the path that was written.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
