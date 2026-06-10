@@ -684,6 +684,153 @@ func (j *Event) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Serializes the profile identified by 'id' as a portable ExportedProfile document
+// and writes it to 'path' on the daemon host's filesystem. The exported file omits
+// the server-local id. Returns the path that was written.
+type ExportProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params ExportProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ExportProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type ExportProfileSchemaJsonParams struct {
+	// Identifier of the profile to export.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Filesystem path on the daemon host where the exported file is written.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ExportProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in ExportProfileSchemaJsonParams: required")
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in ExportProfileSchemaJsonParams: required")
+	}
+	type Plain ExportProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = ExportProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type ExportProfileSchemaJsonResult struct {
+	// Echo of the path that was written.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ExportProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in ExportProfileSchemaJsonResult: required")
+	}
+	type Plain ExportProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = ExportProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ExportProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ExportProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ExportProfileSchemaJson: required")
+	}
+	type Plain ExportProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ExportProfileSchemaJson(plain)
+	return nil
+}
+
+// Portable, on-disk representation of a profile, written by export_profile and
+// read by import_profile. Carries no server-local id: the id is meaningless
+// outside the originating installation, so import always assigns a fresh one. The
+// 'version' field lets readers detect and adapt to format changes.
+type ExportedProfile struct {
+	// Bindings that belong to the exported profile.
+	Bindings []Binding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
+
+	// Magic marker identifying the file as a KeyForge profile export.
+	Format string `json:"format" yaml:"format" mapstructure:"format"`
+
+	// Human-friendly profile name.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+
+	// Export format version. Currently 1; bumped if the on-disk shape changes.
+	Version int `json:"version" yaml:"version" mapstructure:"version"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ExportedProfile) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["bindings"]; raw != nil && !ok {
+		return fmt.Errorf("field bindings in ExportedProfile: required")
+	}
+	if _, ok := raw["format"]; raw != nil && !ok {
+		return fmt.Errorf("field format in ExportedProfile: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in ExportedProfile: required")
+	}
+	if _, ok := raw["version"]; raw != nil && !ok {
+		return fmt.Errorf("field version in ExportedProfile: required")
+	}
+	type Plain ExportedProfile
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Format != "keyforge.profile" {
+		return fmt.Errorf("field %s: must be equal to %s", "format", "keyforge.profile")
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	if plain.Version != 1 {
+		return fmt.Errorf("field %s: must be equal to %v", "version", 1)
+	}
+	*j = ExportedProfile(plain)
+	return nil
+}
+
 // Returns the current auto-switch configuration: the master toggle and the full
 // set of app-to-profile rules. The daemon uses these to switch the active profile
 // based on the foreground application.
@@ -844,6 +991,88 @@ func (j *HelloSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = HelloSchemaJson(plain)
+	return nil
+}
+
+// Reads an ExportedProfile document from 'path' on the daemon host's filesystem,
+// validates it, and creates a new profile from it. The server generates a fresh
+// id; any id in the file is ignored. Does not change the active profile. Returns
+// the created profile.
+type ImportProfileSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params ImportProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ImportProfileSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type ImportProfileSchemaJsonParams struct {
+	// Filesystem path on the daemon host of the exported file to import.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ImportProfileSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in ImportProfileSchemaJsonParams: required")
+	}
+	type Plain ImportProfileSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = ImportProfileSchemaJsonParams(plain)
+	return nil
+}
+
+type ImportProfileSchemaJsonResult struct {
+	// Profile corresponds to the JSON schema field "profile".
+	Profile Profile `json:"profile" yaml:"profile" mapstructure:"profile"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ImportProfileSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["profile"]; raw != nil && !ok {
+		return fmt.Errorf("field profile in ImportProfileSchemaJsonResult: required")
+	}
+	type Plain ImportProfileSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ImportProfileSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ImportProfileSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ImportProfileSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ImportProfileSchemaJson: required")
+	}
+	type Plain ImportProfileSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ImportProfileSchemaJson(plain)
 	return nil
 }
 

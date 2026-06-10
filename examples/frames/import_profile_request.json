@@ -1,0 +1,8 @@
+{
+  "type": "request",
+  "id": "b2c3d4e5-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  "method": "import_profile",
+  "params": {
+    "path": "/home/jdg/profiles/streaming.kfprofile.json"
+  }
+}

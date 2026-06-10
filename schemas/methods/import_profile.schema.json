@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/import_profile.schema.json",
+  "title": "Method: import_profile",
+  "description": "Reads an ExportedProfile document from 'path' on the daemon host's filesystem, validates it, and creates a new profile from it. The server generates a fresh id; any id in the file is ignored. Does not change the active profile. Returns the created profile.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Filesystem path on the daemon host of the exported file to import.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile"],
+      "properties": {
+        "profile": { "$ref": "../common.schema.json#/$defs/Profile" }
+      }
+    }
+  }
+}
