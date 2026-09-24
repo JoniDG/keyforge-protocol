@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/install_plugin.schema.json",
+  "title": "Method: install_plugin",
+  "description": "Installs the '.keyforgeplugin' package at 'path' on the daemon host's filesystem: validates it, extracts it into '<config dir>/plugins/<id>/' and starts the plugin. A package with no entrypoint for the daemon host's OS is rejected with an error and nothing is installed. The response is sent right after spawning, so the returned status is normally 'starting'; clients refresh with list_plugins. If a plugin with the same id is already installed, it is replaced (upgrade): the old process is stopped and its folder swapped atomically. Bindings are never modified, so existing bindings to the plugin's actions keep working after an upgrade.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Filesystem path on the daemon host of the '.keyforgeplugin' package.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugin"],
+      "properties": {
+        "plugin": { "$ref": "../common.schema.json#/$defs/InstalledPlugin" },
+        "previous_version": {
+          "type": "string",
+          "description": "Version that was replaced, present only when the install was an upgrade.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

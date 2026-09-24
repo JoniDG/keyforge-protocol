@@ -304,6 +304,23 @@ export interface PluginLaunchInfo {
   protocol_version: "1";
 }
 /**
+ * A plugin installed in the daemon, with the state of its process.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "InstalledPlugin".
+ */
+export interface InstalledPlugin {
+  manifest: PluginManifest;
+  /**
+   * State of the plugin process: 'starting' (spawned, hello not received yet), 'running' (connected), 'stopped' (not running, e.g. exited cleanly) or 'error' (failed to start or crashed; see 'error').
+   */
+  status: "starting" | "running" | "stopped" | "error";
+  /**
+   * Human-readable reason why the plugin failed. The daemon sets it only when status is 'error' (not enforced by the schema).
+   */
+  error?: string;
+}
+/**
  * Contents of the manifest.json file at the root of a plugin. A plugin is distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into '<config dir>/plugins/<id>/', taking the id from the manifest. All file paths in the manifest (icon, and entrypoint paths containing '/') are relative to the plugin root, use '/' as separator, and must stay inside the plugin root: the daemon rejects '..' segments and any path or archive entry that escapes the root.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema

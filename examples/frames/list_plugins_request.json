@@ -1,0 +1,6 @@
+{
+  "type": "request",
+  "id": "e5f6a7b8-9c0d-4e1f-8a2b-3c4d5e6f7a8b",
+  "method": "list_plugins",
+  "params": {}
+}

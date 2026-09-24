@@ -109,7 +109,18 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 - **Dispatch:** evento `action_invoked` (`data {context, action: {id, params}, input?: InputEvent}`). `context` = id opaco, requerido, único por binding y por paso de macro y estable mientras exista el binding, incluso entre reinicios del daemon (equivale al `context` de Stream Deck: estado por instancia). `input` es opcional: falta cuando el disparo no vino del hardware (ej: probar la acción desde la GUI); se decidió ahora porque pasarlo de requerido a opcional después es breaking. El evento va **dirigido** solo a la conexión de ese plugin (lo dispara un binding o un paso de macro), `params` siempre presente (`{}` si no hay) y **fire-and-forget**: el envelope no cambia (sigue siendo request solo client→server). Contra aceptado: una macro con un paso de plugin no se entera si ese paso falla.
 - **Permisos:** allowlist mínima. Una conexión de plugin solo puede llamar a `hello` y solo recibe sus `action_invoked`; cualquier otro método → error `FORBIDDEN`. Esto no se expresa en el schema; lo aplica `keyforge-core`.
 - **Cleanup:** el plugin tiene que terminar cuando se cierra su conexión (así el daemon los baja al apagarse o al desinstalar).
-- Métodos de instalación (`install_plugin`/`list_plugins`/`uninstall_plugin`, para la UI de desktop) van en un PR aparte.
+
+## Instalación de plugins (DECIDIDO 2026-09-24)
+
+Cuatro métodos. Igual que en `import_profile`, el daemon es el que toca el filesystem y la GUI solo le pasa el path que resolvió con un diálogo nativo.
+
+- `inspect_plugin {path} → {manifest, installed_version?}`: valida el paquete igual que `install_plugin` pero sin instalar, para que la GUI muestre una confirmación. `installed_version` permite mostrar "actualizar de X a Y". La validación del zip queda en un solo lugar: el daemon.
+- `install_plugin {path} → {plugin, previous_version?}`: si el id ya existe, **reemplaza** (upgrade): baja el proceso viejo, cambia la carpeta de forma atómica y lanza la versión nueva. Nunca toca bindings, así que siguen andando tras un upgrade. Responde apenas spawnea (no espera el `hello`), así que devuelve `status: starting` y la GUI refresca con `list_plugins`.
+- `inspect_plugin` e `install_plugin` **rechazan** un paquete sin entrypoint para el SO del host: nunca queda instalado un plugin que no puede correr. `status: error` queda solo para fallas al arrancar o crashes.
+- `list_plugins {} → {plugins: InstalledPlugin[]}`. `$def InstalledPlugin {manifest, status: starting|running|stopped|error, error?}` en `common` (lo usan install y list). `starting` se agregó ahora porque sumar un valor al enum más adelante rompe clientes viejos (el `UnmarshalJSON` de Go rechaza valores desconocidos). `error` solo aparece con `status: error`; lo garantiza el daemon, no el schema.
+- `uninstall_plugin {id} → {}`: baja el proceso y borra la carpeta. Los bindings quedan **huérfanos**: dispararlos no hace nada, y al reinstalar vuelven a andar. Nunca se borra configuración del usuario.
+- Los códigos de error de estos métodos los define `keyforge-core` como sentinels (mismo criterio que import/export); el schema no los enumera.
+- Pendiente (aditivo, sin fecha): un evento de cambio de estado de plugins para que la GUI se entere de crashes sin re-pedir `list_plugins`.
 
 ## Comandos
 
