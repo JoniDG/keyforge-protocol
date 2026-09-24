@@ -46,13 +46,10 @@ export interface ActionDescriptor {
 }
 /**
  * Describes one action parameter so a client can render an input for it.
- *
- * This interface was referenced by `MethodListActions`'s JSON-Schema
- * via the `definition` "ParamSpec".
  */
 export interface ParamSpec {
   /**
-   * Param key written into Action.params.
+   * Param key written into Action.params. Unique within the action.
    */
   name: string;
   /**

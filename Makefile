@@ -1,4 +1,4 @@
-.PHONY: help generate generate-go generate-ts generate-ts-barrel build-ts validate validate-frames validate-methods validate-events clean check-tools
+.PHONY: help generate generate-go generate-ts generate-ts-barrel build-ts validate validate-frames validate-methods validate-events validate-files clean check-tools
 
 SCHEMAS_DIR := schemas
 EXAMPLES_DIR := examples
@@ -76,7 +76,7 @@ generate-ts-barrel:
 build-ts: ## Install + build the TS package (emits .d.ts and .js into ts/dist/)
 	cd ts && npm install --no-audit --no-fund && npm run build
 
-validate: check-tools validate-frames validate-methods validate-events ## Validate every example against its schema
+validate: check-tools validate-frames validate-methods validate-events validate-files ## Validate every example against its schema
 	@echo "✓ All examples valid"
 
 validate-frames: ## Validate envelope frames in examples/frames/
@@ -94,6 +94,19 @@ validate-events: ## Validate event content examples in examples/events/
 	@for ex in $(EXAMPLES_DIR)/events/*.json; do \
 		base=$$(basename $$ex .json); \
 		ajv validate -s $(SCHEMAS_DIR)/events/$$base.schema.json -d $$ex --spec=draft2020 -r $(COMMON_SCHEMA) || exit 1; \
+	done
+
+# On-disk file formats (e.g. a plugin's manifest.json) are $defs in common, not
+# standalone schemas. ajv-cli can't take a $def as the root schema, so each
+# example is validated through a one-line wrapper that $refs the def whose
+# PascalCase name matches the example's snake_case file name.
+validate-files: ## Validate on-disk file examples in examples/files/ against their common $def
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	for ex in $(EXAMPLES_DIR)/files/*.json; do \
+		base=$$(basename $$ex .json); \
+		def=$$(echo $$base | awk 'BEGIN{FS="_";OFS=""} { for(i=1;i<=NF;i++) $$i = toupper(substr($$i,1,1)) substr($$i,2) }1'); \
+		printf '{"$$ref":"https://keyforge.dev/schemas/v1/common.schema.json#/$$defs/%s"}' $$def > $$tmp/$$def.json; \
+		ajv validate -s $$tmp/$$def.json -d $$ex --spec=draft2020 -r $(COMMON_SCHEMA) || exit 1; \
 	done
 
 clean: ## Remove generated TS package build output

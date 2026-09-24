@@ -16,7 +16,9 @@ type Action struct {
 	Params ActionParams `json:"params,omitempty,omitzero" yaml:"params,omitempty" mapstructure:"params,omitempty"`
 
 	// Action type. Built-ins are well-known; plugin actions use
-	// 'plugin.<plugin_id>.<action_id>'.
+	// 'plugin.<plugin_id>.<action_id>'. Plugin ids are reverse-DNS (they contain
+	// dots) and action ids never do, so the action id is everything after the last
+	// dot.
 	Type string `json:"type" yaml:"type" mapstructure:"type"`
 }
 
@@ -1563,7 +1565,7 @@ type ParamSpec struct {
 	// Human-friendly field label.
 	Label string `json:"label" yaml:"label" mapstructure:"label"`
 
-	// Param key written into Action.params.
+	// Param key written into Action.params. Unique within the action.
 	Name string `json:"name" yaml:"name" mapstructure:"name"`
 
 	// Optional placeholder/example shown in the input.
@@ -1670,6 +1672,228 @@ func (j *PeerInfo) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "version", 1)
 	}
 	*j = PeerInfo(plain)
+	return nil
+}
+
+// An action a plugin exposes, declared in its manifest.
+type PluginAction struct {
+	// Optional longer description of what the action does.
+	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty" mapstructure:"description,omitempty"`
+
+	// Action identifier, unique within the plugin. snake_case, no dots.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Input kinds the action can be bound to. Omitted means any kind.
+	Inputs []InputKind `json:"inputs,omitempty,omitzero" yaml:"inputs,omitempty" mapstructure:"inputs,omitempty"`
+
+	// Human-friendly action name for the UI.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+
+	// Params this action accepts, in display order.
+	Params []ParamSpec `json:"params" yaml:"params" mapstructure:"params"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PluginAction) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in PluginAction: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in PluginAction: required")
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in PluginAction: required")
+	}
+	type Plain PluginAction
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[a-z][a-z0-9_]*$`, string(plain.Id)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Id", `^[a-z][a-z0-9_]*$`)
+	}
+	if plain.Inputs != nil && len(plain.Inputs) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "inputs", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	*j = PluginAction(plain)
+	return nil
+}
+
+// Executable plus arguments used to start a plugin process.
+type PluginCommand struct {
+	// Arguments passed to the executable.
+	Args []string `json:"args,omitempty,omitzero" yaml:"args,omitempty" mapstructure:"args,omitempty"`
+
+	// Executable to run. A path containing '/' is resolved relative to the plugin
+	// root; a bare name (e.g. 'node') is looked up on the PATH. Always use '/' as
+	// separator, also on Windows; absolute paths, '\' and ':' are not allowed.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PluginCommand) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in PluginCommand: required")
+	}
+	type Plain PluginCommand
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[^/\\:][^\\:]*$`, string(plain.Path)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Path", `^[^/\\:][^\\:]*$`)
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = PluginCommand(plain)
+	return nil
+}
+
+// Contents of the manifest.json file at the root of a plugin. A plugin is
+// distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its
+// root (no wrapping folder) plus every file the manifest references. The daemon
+// installs it by extracting the archive into '<config dir>/plugins/<id>/', taking
+// the id from the manifest. All file paths in the manifest (icon, and entrypoint
+// paths containing '/') are relative to the plugin root, use '/' as separator, and
+// must stay inside the plugin root: the daemon rejects '..' segments and any path
+// or archive entry that escapes the root.
+type PluginManifest struct {
+	// Actions the plugin exposes. Each becomes bindable as 'plugin.<id>.<action id>'.
+	Actions []PluginAction `json:"actions" yaml:"actions" mapstructure:"actions"`
+
+	// Plugin author, shown in the UI.
+	Author *string `json:"author,omitempty,omitzero" yaml:"author,omitempty" mapstructure:"author,omitempty"`
+
+	// Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').
+	Category *string `json:"category,omitempty,omitzero" yaml:"category,omitempty" mapstructure:"category,omitempty"`
+
+	// Short description of what the plugin does.
+	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty" mapstructure:"description,omitempty"`
+
+	// Command the daemon runs to start the plugin, per OS (keys match Go's GOOS). The
+	// plugin supports exactly the OSes listed here.
+	Entrypoint PluginManifestEntrypoint `json:"entrypoint" yaml:"entrypoint" mapstructure:"entrypoint"`
+
+	// URL of the plugin homepage or source repository.
+	Homepage *string `json:"homepage,omitempty,omitzero" yaml:"homepage,omitempty" mapstructure:"homepage,omitempty"`
+
+	// Path to the plugin icon, relative to the plugin root. No leading '/', no '\'
+	// and no ':'.
+	Icon *string `json:"icon,omitempty,omitzero" yaml:"icon,omitempty" mapstructure:"icon,omitempty"`
+
+	// Globally unique plugin identifier in reverse-DNS form (e.g.
+	// 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each
+	// starting with a letter. Used as the install folder name and as <plugin_id> in
+	// Action.type.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Manifest format version. Currently 1; bumped if the manifest shape changes.
+	ManifestVersion int `json:"manifest_version" yaml:"manifest_version" mapstructure:"manifest_version"`
+
+	// Human-friendly plugin name for the UI.
+	Name string `json:"name" yaml:"name" mapstructure:"name"`
+
+	// Major version of the protocol the plugin speaks. Lets the daemon reject an
+	// incompatible plugin before spawning it. Currently '1'.
+	ProtocolVersion string `json:"protocol_version" yaml:"protocol_version" mapstructure:"protocol_version"`
+
+	// Plugin version (SemVer 2.0).
+	Version string `json:"version" yaml:"version" mapstructure:"version"`
+}
+
+// Command the daemon runs to start the plugin, per OS (keys match Go's GOOS). The
+// plugin supports exactly the OSes listed here.
+type PluginManifestEntrypoint struct {
+	// Darwin corresponds to the JSON schema field "darwin".
+	Darwin *PluginCommand `json:"darwin,omitempty,omitzero" yaml:"darwin,omitempty" mapstructure:"darwin,omitempty"`
+
+	// Linux corresponds to the JSON schema field "linux".
+	Linux *PluginCommand `json:"linux,omitempty,omitzero" yaml:"linux,omitempty" mapstructure:"linux,omitempty"`
+
+	// Windows corresponds to the JSON schema field "windows".
+	Windows *PluginCommand `json:"windows,omitempty,omitzero" yaml:"windows,omitempty" mapstructure:"windows,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PluginManifest) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["actions"]; raw != nil && !ok {
+		return fmt.Errorf("field actions in PluginManifest: required")
+	}
+	if _, ok := raw["entrypoint"]; raw != nil && !ok {
+		return fmt.Errorf("field entrypoint in PluginManifest: required")
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in PluginManifest: required")
+	}
+	if _, ok := raw["manifest_version"]; raw != nil && !ok {
+		return fmt.Errorf("field manifest_version in PluginManifest: required")
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in PluginManifest: required")
+	}
+	if _, ok := raw["protocol_version"]; raw != nil && !ok {
+		return fmt.Errorf("field protocol_version in PluginManifest: required")
+	}
+	if _, ok := raw["version"]; raw != nil && !ok {
+		return fmt.Errorf("field version in PluginManifest: required")
+	}
+	type Plain PluginManifest
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Actions != nil && len(plain.Actions) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "actions", 1)
+	}
+	if plain.Author != nil && utf8.RuneCountInString(string(*plain.Author)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "author", 1)
+	}
+	if plain.Category != nil && utf8.RuneCountInString(string(*plain.Category)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "category", 1)
+	}
+	if plain.Homepage != nil && utf8.RuneCountInString(string(*plain.Homepage)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "homepage", 1)
+	}
+	if plain.Icon != nil {
+		if matched, _ := regexp.MatchString(`^[^/\\:][^\\:]*$`, string(*plain.Icon)); !matched {
+			return fmt.Errorf("field %s pattern match: must match %s", "Icon", `^[^/\\:][^\\:]*$`)
+		}
+	}
+	if plain.Icon != nil && utf8.RuneCountInString(string(*plain.Icon)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "icon", 1)
+	}
+	if matched, _ := regexp.MatchString(`^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`, string(plain.Id)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Id", `^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`)
+	}
+	if plain.ManifestVersion != 1 {
+		return fmt.Errorf("field %s: must be equal to %v", "manifest_version", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Name)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
+	}
+	if plain.ProtocolVersion != "1" {
+		return fmt.Errorf("field %s: must be equal to %s", "protocol_version", "1")
+	}
+	if matched, _ := regexp.MatchString(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`, string(plain.Version)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Version", `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`)
+	}
+	*j = PluginManifest(plain)
 	return nil
 }
 

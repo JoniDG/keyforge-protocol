@@ -60,7 +60,7 @@ export interface InputEvent {
  */
 export interface Action {
   /**
-   * Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'.
+   * Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'. Plugin ids are reverse-DNS (they contain dots) and action ids never do, so the action id is everything after the last dot.
    */
   type: string;
   /**
@@ -245,4 +245,137 @@ export interface AutoSwitchRule {
    * Identifier of the profile to activate when this app is frontmost.
    */
   profile_id: string;
+}
+/**
+ * Describes one action parameter so a client can render an input for it.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "ParamSpec".
+ */
+export interface ParamSpec {
+  /**
+   * Param key written into Action.params. Unique within the action.
+   */
+  name: string;
+  /**
+   * Human-friendly field label.
+   */
+  label: string;
+  /**
+   * Param value type. Only 'string' in v1.
+   */
+  type: "string";
+  required: boolean;
+  /**
+   * Optional placeholder/example shown in the input.
+   */
+  placeholder?: string;
+}
+/**
+ * Contents of the manifest.json file at the root of a plugin. A plugin is distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into '<config dir>/plugins/<id>/', taking the id from the manifest. All file paths in the manifest (icon, and entrypoint paths containing '/') are relative to the plugin root, use '/' as separator, and must stay inside the plugin root: the daemon rejects '..' segments and any path or archive entry that escapes the root.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "PluginManifest".
+ */
+export interface PluginManifest {
+  /**
+   * Manifest format version. Currently 1; bumped if the manifest shape changes.
+   */
+  manifest_version: 1;
+  /**
+   * Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
+   */
+  id: string;
+  /**
+   * Human-friendly plugin name for the UI.
+   */
+  name: string;
+  /**
+   * Plugin version (SemVer 2.0).
+   */
+  version: string;
+  /**
+   * Major version of the protocol the plugin speaks. Lets the daemon reject an incompatible plugin before spawning it. Currently '1'.
+   */
+  protocol_version: "1";
+  /**
+   * Plugin author, shown in the UI.
+   */
+  author?: string;
+  /**
+   * Short description of what the plugin does.
+   */
+  description?: string;
+  /**
+   * URL of the plugin homepage or source repository.
+   */
+  homepage?: string;
+  /**
+   * Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').
+   */
+  category?: string;
+  /**
+   * Path to the plugin icon, relative to the plugin root. No leading '/', no '\' and no ':'.
+   */
+  icon?: string;
+  /**
+   * Command the daemon runs to start the plugin, per OS (keys match Go's GOOS). The plugin supports exactly the OSes listed here.
+   */
+  entrypoint: {
+    darwin?: PluginCommand;
+    linux?: PluginCommand;
+    windows?: PluginCommand;
+  };
+  /**
+   * Actions the plugin exposes. Each becomes bindable as 'plugin.<id>.<action id>'.
+   *
+   * @minItems 1
+   */
+  actions: [PluginAction, ...PluginAction[]];
+}
+/**
+ * Executable plus arguments used to start a plugin process.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "PluginCommand".
+ */
+export interface PluginCommand {
+  /**
+   * Executable to run. A path containing '/' is resolved relative to the plugin root; a bare name (e.g. 'node') is looked up on the PATH. Always use '/' as separator, also on Windows; absolute paths, '\' and ':' are not allowed.
+   */
+  path: string;
+  /**
+   * Arguments passed to the executable.
+   */
+  args?: string[];
+}
+/**
+ * An action a plugin exposes, declared in its manifest.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "PluginAction".
+ */
+export interface PluginAction {
+  /**
+   * Action identifier, unique within the plugin. snake_case, no dots.
+   */
+  id: string;
+  /**
+   * Human-friendly action name for the UI.
+   */
+  name: string;
+  /**
+   * Optional longer description of what the action does.
+   */
+  description?: string;
+  /**
+   * Input kinds the action can be bound to. Omitted means any kind.
+   *
+   * @minItems 1
+   */
+  inputs?: [InputKind, ...InputKind[]];
+  /**
+   * Params this action accepts, in display order.
+   */
+  params: ParamSpec[];
 }

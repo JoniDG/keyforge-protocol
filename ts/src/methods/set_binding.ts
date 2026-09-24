@@ -40,7 +40,7 @@ export interface Binding {
  */
 export interface Action {
   /**
-   * Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'.
+   * Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'. Plugin ids are reverse-DNS (they contain dots) and action ids never do, so the action id is everything after the last dot.
    */
   type: string;
   /**
