@@ -88,7 +88,7 @@
           "type": "string",
           "description": "Stable, machine-readable error code in SCREAMING_SNAKE_CASE.",
           "pattern": "^[A-Z][A-Z0-9_]*$",
-          "examples": ["NOT_FOUND", "INVALID_PARAMS", "UNSUPPORTED_PROTOCOL_VERSION"]
+          "examples": ["NOT_FOUND", "INVALID_PARAMS", "UNSUPPORTED_PROTOCOL_VERSION", "FORBIDDEN"]
         },
         "message": {
           "type": "string",

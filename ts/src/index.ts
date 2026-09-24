@@ -19,5 +19,6 @@ export type { MethodSetActiveProfile } from './methods/set_active_profile.js';
 export type { MethodSetAutoSwitch } from './methods/set_auto_switch.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
 
+export type { EventActionInvoked } from './events/action_invoked.js';
 export type { EventActiveProfileChanged } from './events/active_profile_changed.js';
 export type { EventInput } from './events/input.js';

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/events/action_invoked.schema.json",
+  "title": "Event: action_invoked",
+  "description": "Sent by the daemon to a single plugin connection (never broadcast) when a binding or macro step whose action is 'plugin.<plugin_id>.<action_id>' fires for that plugin. Fire-and-forget: the daemon does not wait for the plugin, so a failing plugin action cannot stop a macro it is part of.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context", "action"],
+      "properties": {
+        "context": {
+          "type": "string",
+          "description": "Opaque id of the binding instance that fired: unique per binding and per macro step, and stable for as long as that binding exists (also across daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two keys. Plugins must not parse it.",
+          "minLength": 1
+        },
+        "action": {
+          "type": "object",
+          "description": "The plugin action to run.",
+          "additionalProperties": false,
+          "required": ["id", "params"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Action id as declared in the plugin manifest (PluginAction.id), without the 'plugin.<plugin_id>.' prefix.",
+              "minLength": 1
+            },
+            "params": {
+              "type": "object",
+              "description": "Action.params from the binding, as configured by the user. Always present: {} when the binding has no params."
+            }
+          }
+        },
+        "input": {
+          "$ref": "../common.schema.json#/$defs/InputEvent",
+          "description": "Hardware event that fired the binding (e.g. lets a plugin tell rotate_cw from rotate_ccw). Absent when the action was not fired by hardware (e.g. a test run from the GUI)."
+        }
+      }
+    }
+  }
+}

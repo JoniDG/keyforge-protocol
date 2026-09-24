@@ -67,6 +67,112 @@ func (j *ActionDescriptor) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Sent by the daemon to a single plugin connection (never broadcast) when a
+// binding or macro step whose action is 'plugin.<plugin_id>.<action_id>' fires for
+// that plugin. Fire-and-forget: the daemon does not wait for the plugin, so a
+// failing plugin action cannot stop a macro it is part of.
+type ActionInvokedSchemaJson struct {
+	// Data corresponds to the JSON schema field "data".
+	Data ActionInvokedSchemaJsonData `json:"data" yaml:"data" mapstructure:"data"`
+}
+
+type ActionInvokedSchemaJsonData struct {
+	// The plugin action to run.
+	Action ActionInvokedSchemaJsonDataAction `json:"action" yaml:"action" mapstructure:"action"`
+
+	// Opaque id of the binding instance that fired: unique per binding and per macro
+	// step, and stable for as long as that binding exists (also across daemon
+	// restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two
+	// keys. Plugins must not parse it.
+	Context string `json:"context" yaml:"context" mapstructure:"context"`
+
+	// Hardware event that fired the binding (e.g. lets a plugin tell rotate_cw from
+	// rotate_ccw). Absent when the action was not fired by hardware (e.g. a test run
+	// from the GUI).
+	Input *InputEvent `json:"input,omitempty,omitzero" yaml:"input,omitempty" mapstructure:"input,omitempty"`
+}
+
+// The plugin action to run.
+type ActionInvokedSchemaJsonDataAction struct {
+	// Action id as declared in the plugin manifest (PluginAction.id), without the
+	// 'plugin.<plugin_id>.' prefix.
+	Id string `json:"id" yaml:"id" mapstructure:"id"`
+
+	// Action.params from the binding, as configured by the user. Always present: {}
+	// when the binding has no params.
+	Params ActionInvokedSchemaJsonDataActionParams `json:"params" yaml:"params" mapstructure:"params"`
+}
+
+// Action.params from the binding, as configured by the user. Always present: {}
+// when the binding has no params.
+type ActionInvokedSchemaJsonDataActionParams map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActionInvokedSchemaJsonDataAction) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in ActionInvokedSchemaJsonDataAction: required")
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ActionInvokedSchemaJsonDataAction: required")
+	}
+	type Plain ActionInvokedSchemaJsonDataAction
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Id)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
+	}
+	*j = ActionInvokedSchemaJsonDataAction(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActionInvokedSchemaJsonData) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["action"]; raw != nil && !ok {
+		return fmt.Errorf("field action in ActionInvokedSchemaJsonData: required")
+	}
+	if _, ok := raw["context"]; raw != nil && !ok {
+		return fmt.Errorf("field context in ActionInvokedSchemaJsonData: required")
+	}
+	type Plain ActionInvokedSchemaJsonData
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Context)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "context", 1)
+	}
+	*j = ActionInvokedSchemaJsonData(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ActionInvokedSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["data"]; raw != nil && !ok {
+		return fmt.Errorf("field data in ActionInvokedSchemaJson: required")
+	}
+	type Plain ActionInvokedSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ActionInvokedSchemaJson(plain)
+	return nil
+}
+
 // Action-specific parameters. Schema depends on 'type'. The daemon validates them
 // against the per-type ActionParams definition (e.g. DelayActionParams for type
 // 'delay').
@@ -1641,7 +1747,8 @@ func (j *ParamSpec) UnmarshalJSON(value []byte) error {
 
 // Self-identification of a protocol peer (client or server).
 type PeerInfo struct {
-	// Stable identifier of the peer implementation.
+	// Stable identifier of the peer implementation. A plugin must send its PluginID
+	// here; the daemon checks it against the plugin its auth token belongs to.
 	Name string `json:"name" yaml:"name" mapstructure:"name"`
 
 	// Semver version of the peer build.
@@ -1761,6 +1868,75 @@ func (j *PluginCommand) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Globally unique plugin identifier in reverse-DNS form (e.g.
+// 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each
+// starting with a letter. Used as the install folder name and as <plugin_id> in
+// Action.type.
+type PluginID string
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PluginID) UnmarshalJSON(value []byte) error {
+	type Plain PluginID
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`, string(plain)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "", `^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`)
+	}
+	*j = PluginID(plain)
+	return nil
+}
+
+// Connection info the daemon hands to a plugin process it spawns, serialized as
+// JSON in the KEYFORGE_PLUGIN_INFO environment variable (an env var rather than
+// CLI args, so the token is not visible in the process list). The plugin connects
+// to ws_url, sends hello with client.name set to plugin_id, and must exit when
+// that connection closes.
+type PluginLaunchInfo struct {
+	// Id of the plugin being launched (its manifest id).
+	PluginId PluginID `json:"plugin_id" yaml:"plugin_id" mapstructure:"plugin_id"`
+
+	// Protocol major version the daemon speaks. The plugin sends it back in hello.
+	// Currently '1'.
+	ProtocolVersion string `json:"protocol_version" yaml:"protocol_version" mapstructure:"protocol_version"`
+
+	// WebSocket URL to connect to, including the per-plugin auth token as a query
+	// param. Treat it as a secret: the token identifies the plugin to the daemon and
+	// is distinct from the GUI's session token.
+	WsUrl string `json:"ws_url" yaml:"ws_url" mapstructure:"ws_url"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *PluginLaunchInfo) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["plugin_id"]; raw != nil && !ok {
+		return fmt.Errorf("field plugin_id in PluginLaunchInfo: required")
+	}
+	if _, ok := raw["protocol_version"]; raw != nil && !ok {
+		return fmt.Errorf("field protocol_version in PluginLaunchInfo: required")
+	}
+	if _, ok := raw["ws_url"]; raw != nil && !ok {
+		return fmt.Errorf("field ws_url in PluginLaunchInfo: required")
+	}
+	type Plain PluginLaunchInfo
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.ProtocolVersion != "1" {
+		return fmt.Errorf("field %s: must be equal to %s", "protocol_version", "1")
+	}
+	if utf8.RuneCountInString(string(plain.WsUrl)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "ws_url", 1)
+	}
+	*j = PluginLaunchInfo(plain)
+	return nil
+}
+
 // Contents of the manifest.json file at the root of a plugin. A plugin is
 // distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its
 // root (no wrapping folder) plus every file the manifest references. The daemon
@@ -1793,11 +1969,9 @@ type PluginManifest struct {
 	// and no ':'.
 	Icon *string `json:"icon,omitempty,omitzero" yaml:"icon,omitempty" mapstructure:"icon,omitempty"`
 
-	// Globally unique plugin identifier in reverse-DNS form (e.g.
-	// 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each
-	// starting with a letter. Used as the install folder name and as <plugin_id> in
+	// Globally unique reverse-DNS plugin id; install folder name and <plugin_id> in
 	// Action.type.
-	Id string `json:"id" yaml:"id" mapstructure:"id"`
+	Id PluginID `json:"id" yaml:"id" mapstructure:"id"`
 
 	// Manifest format version. Currently 1; bumped if the manifest shape changes.
 	ManifestVersion int `json:"manifest_version" yaml:"manifest_version" mapstructure:"manifest_version"`
@@ -1877,9 +2051,6 @@ func (j *PluginManifest) UnmarshalJSON(value []byte) error {
 	}
 	if plain.Icon != nil && utf8.RuneCountInString(string(*plain.Icon)) < 1 {
 		return fmt.Errorf("field %s length: must be >= %d", "icon", 1)
-	}
-	if matched, _ := regexp.MatchString(`^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`, string(plain.Id)); !matched {
-		return fmt.Errorf("field %s pattern match: must match %s", "Id", `^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$`)
 	}
 	if plain.ManifestVersion != 1 {
 		return fmt.Errorf("field %s: must be equal to %v", "manifest_version", 1)

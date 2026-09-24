@@ -90,6 +90,16 @@ A plugin declares itself in a `manifest.json`, defined by the `PluginManifest` t
 
 Plugins are distributed as a **`.keyforgeplugin`** file: a zip archive with `manifest.json` at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into `<config dir>/plugins/<id>/`, taking the id from the manifest. All file paths in the manifest (`icon`, and entrypoint paths containing `/`) are relative to the plugin root, use `/` as separator (also on Windows), and must stay inside the plugin root: the daemon rejects `..` segments and any path or archive entry that escapes it.
 
+## Plugin runtime
+
+How the daemon runs an installed plugin and talks to it:
+
+1. **Launch.** The daemon spawns the manifest's `entrypoint` for the current OS and sets the `KEYFORGE_PLUGIN_INFO` environment variable to a JSON `PluginLaunchInfo` (`plugin_id`, `ws_url`, `protocol_version`). An env var is used instead of CLI args so the auth token doesn't show up in the process list. See [`examples/files/plugin_launch_info.json`](examples/files/plugin_launch_info.json).
+2. **Connect.** The plugin opens `ws_url`, which carries a **per-plugin token** distinct from the GUI's, and sends the regular `hello` with `client.name` set to its plugin id. The daemon identifies the plugin by its token; a `hello` whose name doesn't match is answered with `FORBIDDEN` and the connection is closed.
+3. **Receive actions.** When a binding or macro step for `plugin.<plugin_id>.<action_id>` fires, the daemon sends the `action_invoked` event to that plugin's connection only, with an opaque `context` (stable per binding instance, so a plugin can keep per-instance state), the action id, its params and, when the trigger came from hardware, the `InputEvent` that fired it. Delivery is fire-and-forget: the daemon doesn't wait for the plugin.
+4. **Permissions.** A plugin connection may only call `hello` and only receives its own `action_invoked` events (no `input` or GUI-facing events). Any other method is answered with error code `FORBIDDEN`.
+5. **Exit.** A plugin must exit when its WebSocket connection closes. That's how the daemon stops plugins on shutdown or uninstall.
+
 ## Consuming from Go
 
 The generated Go types are published as a submodule under [`go/`](./go) so any consumer can pull them in:

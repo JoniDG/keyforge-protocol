@@ -32,7 +32,7 @@ export interface MethodHello {
  */
 export interface PeerInfo {
   /**
-   * Stable identifier of the peer implementation.
+   * Stable identifier of the peer implementation. A plugin must send its PluginID here; the daemon checks it against the plugin its auth token belongs to.
    */
   name: string;
   /**

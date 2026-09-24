@@ -99,7 +99,17 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 - **Paquete `.keyforgeplugin`** (en minúsculas): zip con `manifest.json` en la raíz (sin carpeta que lo envuelva). Se instala extrayéndolo en `<config dir>/plugins/<id>/`.
 - **Paths de archivo** (`icon`, `entrypoint` con `/`): relativos a la raíz del plugin, siempre con `/` (también en Windows). El schema rechaza lo sintáctico (`/` inicial, `\`, `:`); lo que **no** puede expresar en RE2 sin lookaheads —segmentos `..`, zip-slip al extraer, unicidad de `actions[].id`/`params[].name`— lo valida `keyforge-core`, y así queda escrito en las descripciones del schema.
 - Los `pattern` tienen que compilar en **RE2**: el Go generado ignora el error de `regexp.MatchString`, así que un patrón inválido rechazaría todos los manifests en silencio.
-- Fuera de v1: Property Inspector HTML, permisos, estados/íconos por acción, multi-arch dentro de un mismo OS. El **contrato de runtime** (cómo el daemon lanza al plugin y le despacha acciones) va en un PR aparte.
+- Fuera de v1: Property Inspector HTML, permisos, estados/íconos por acción, multi-arch dentro de un mismo OS.
+- `PluginID` es un `$def` propio (patrón único) que usan `PluginManifest.id` y `PluginLaunchInfo.plugin_id`.
+
+## Runtime de plugins (DECIDIDO 2026-09-24)
+
+- **Lanzamiento:** el daemon spawnea el `entrypoint` y pasa una sola env var `KEYFORGE_PLUGIN_INFO` = JSON `PluginLaunchInfo {plugin_id, ws_url, protocol_version}` (tipado, extensible de forma aditiva). Env var y no args: el token no queda visible en `ps`.
+- **Auth/identidad:** `ws_url` lleva un **token por plugin**, distinto del de la GUI. El daemon identifica al plugin por el token; en el `hello`, `client.name` = `PluginID` y el daemon lo cruza contra el token (si no coincide: `FORBIDDEN` + cierre de la conexión).
+- **Dispatch:** evento `action_invoked` (`data {context, action: {id, params}, input?: InputEvent}`). `context` = id opaco, requerido, único por binding y por paso de macro y estable mientras exista el binding, incluso entre reinicios del daemon (equivale al `context` de Stream Deck: estado por instancia). `input` es opcional: falta cuando el disparo no vino del hardware (ej: probar la acción desde la GUI); se decidió ahora porque pasarlo de requerido a opcional después es breaking. El evento va **dirigido** solo a la conexión de ese plugin (lo dispara un binding o un paso de macro), `params` siempre presente (`{}` si no hay) y **fire-and-forget**: el envelope no cambia (sigue siendo request solo client→server). Contra aceptado: una macro con un paso de plugin no se entera si ese paso falla.
+- **Permisos:** allowlist mínima. Una conexión de plugin solo puede llamar a `hello` y solo recibe sus `action_invoked`; cualquier otro método → error `FORBIDDEN`. Esto no se expresa en el schema; lo aplica `keyforge-core`.
+- **Cleanup:** el plugin tiene que terminar cuando se cierra su conexión (así el daemon los baja al apagarse o al desinstalar).
+- Métodos de instalación (`install_plugin`/`list_plugins`/`uninstall_plugin`, para la UI de desktop) van en un PR aparte.
 
 ## Comandos
 
