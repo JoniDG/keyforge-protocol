@@ -100,6 +100,19 @@ How the daemon runs an installed plugin and talks to it:
 4. **Permissions.** A plugin connection may only call `hello` and only receives its own `action_invoked` events (no `input` or GUI-facing events). Any other method is answered with error code `FORBIDDEN`.
 5. **Exit.** A plugin must exit when its WebSocket connection closes. That's how the daemon stops plugins on shutdown or uninstall.
 
+### Installing plugins
+
+Clients manage plugins through four methods. The daemon does all filesystem work; the client only passes the path of the package on the daemon host.
+
+| Method | Params → Result | Behavior |
+|---|---|---|
+| `inspect_plugin` | `{ path }` → `{ manifest, installed_version? }` | Validates the package as `install_plugin` would, without installing. Lets a client show a confirmation first. |
+| `install_plugin` | `{ path }` → `{ plugin, previous_version? }` | Validates, extracts into `<config dir>/plugins/<id>/` and starts the plugin. An already-installed id is **replaced** (upgrade). Responds right after spawning (status normally `starting`). |
+| `list_plugins` | `{}` → `{ plugins }` | Every installed plugin as `InstalledPlugin { manifest, status, error? }`, with `status` one of `starting`, `running`, `stopped`, `error`. |
+| `uninstall_plugin` | `{ id }` → `{}` | Stops the process and deletes the folder. Bindings to its actions are kept (orphaned) and work again if the plugin is reinstalled. |
+
+Both `inspect_plugin` and `install_plugin` reject a package that has no entrypoint for the daemon host's OS, so a plugin that can't run is never installed.
+
 ## Consuming from Go
 
 The generated Go types are published as a submodule under [`go/`](./go) so any consumer can pull them in:

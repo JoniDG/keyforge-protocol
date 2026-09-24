@@ -10,14 +10,18 @@ export type { MethodExportProfile } from './methods/export_profile.js';
 export type { MethodGetAutoSwitch } from './methods/get_auto_switch.js';
 export type { MethodHello } from './methods/hello.js';
 export type { MethodImportProfile } from './methods/import_profile.js';
+export type { MethodInspectPlugin } from './methods/inspect_plugin.js';
+export type { MethodInstallPlugin } from './methods/install_plugin.js';
 export type { MethodListActions } from './methods/list_actions.js';
 export type { MethodListBindings } from './methods/list_bindings.js';
 export type { MethodListDevices } from './methods/list_devices.js';
+export type { MethodListPlugins } from './methods/list_plugins.js';
 export type { MethodListProfiles } from './methods/list_profiles.js';
 export type { MethodRenameProfile } from './methods/rename_profile.js';
 export type { MethodSetActiveProfile } from './methods/set_active_profile.js';
 export type { MethodSetAutoSwitch } from './methods/set_auto_switch.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
+export type { MethodUninstallPlugin } from './methods/uninstall_plugin.js';
 
 export type { EventActionInvoked } from './events/action_invoked.js';
 export type { EventActiveProfileChanged } from './events/active_profile_changed.js';

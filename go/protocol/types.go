@@ -1371,6 +1371,262 @@ func (j *Input) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Opens the '.keyforgeplugin' package at 'path' on the daemon host's filesystem
+// and validates it exactly as install_plugin would (including rejecting a package
+// with no entrypoint for the daemon host's OS), without installing or changing
+// anything. Lets a client show a confirmation (name, author, version, actions)
+// before installing.
+type InspectPluginSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params InspectPluginSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result InspectPluginSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type InspectPluginSchemaJsonParams struct {
+	// Filesystem path on the daemon host of the '.keyforgeplugin' package.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InspectPluginSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in InspectPluginSchemaJsonParams: required")
+	}
+	type Plain InspectPluginSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = InspectPluginSchemaJsonParams(plain)
+	return nil
+}
+
+type InspectPluginSchemaJsonResult struct {
+	// Version of the plugin with the same id that is currently installed, if any.
+	// Installing the package would replace it.
+	InstalledVersion *string `json:"installed_version,omitempty,omitzero" yaml:"installed_version,omitempty" mapstructure:"installed_version,omitempty"`
+
+	// Manifest corresponds to the JSON schema field "manifest".
+	Manifest PluginManifest `json:"manifest" yaml:"manifest" mapstructure:"manifest"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InspectPluginSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["manifest"]; raw != nil && !ok {
+		return fmt.Errorf("field manifest in InspectPluginSchemaJsonResult: required")
+	}
+	type Plain InspectPluginSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.InstalledVersion != nil && utf8.RuneCountInString(string(*plain.InstalledVersion)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "installed_version", 1)
+	}
+	*j = InspectPluginSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InspectPluginSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in InspectPluginSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in InspectPluginSchemaJson: required")
+	}
+	type Plain InspectPluginSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = InspectPluginSchemaJson(plain)
+	return nil
+}
+
+// Installs the '.keyforgeplugin' package at 'path' on the daemon host's
+// filesystem: validates it, extracts it into '<config dir>/plugins/<id>/' and
+// starts the plugin. A package with no entrypoint for the daemon host's OS is
+// rejected with an error and nothing is installed. The response is sent right
+// after spawning, so the returned status is normally 'starting'; clients refresh
+// with list_plugins. If a plugin with the same id is already installed, it is
+// replaced (upgrade): the old process is stopped and its folder swapped
+// atomically. Bindings are never modified, so existing bindings to the plugin's
+// actions keep working after an upgrade.
+type InstallPluginSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params InstallPluginSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result InstallPluginSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type InstallPluginSchemaJsonParams struct {
+	// Filesystem path on the daemon host of the '.keyforgeplugin' package.
+	Path string `json:"path" yaml:"path" mapstructure:"path"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InstallPluginSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["path"]; raw != nil && !ok {
+		return fmt.Errorf("field path in InstallPluginSchemaJsonParams: required")
+	}
+	type Plain InstallPluginSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.Path)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "path", 1)
+	}
+	*j = InstallPluginSchemaJsonParams(plain)
+	return nil
+}
+
+type InstallPluginSchemaJsonResult struct {
+	// Plugin corresponds to the JSON schema field "plugin".
+	Plugin InstalledPlugin `json:"plugin" yaml:"plugin" mapstructure:"plugin"`
+
+	// Version that was replaced, present only when the install was an upgrade.
+	PreviousVersion *string `json:"previous_version,omitempty,omitzero" yaml:"previous_version,omitempty" mapstructure:"previous_version,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InstallPluginSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["plugin"]; raw != nil && !ok {
+		return fmt.Errorf("field plugin in InstallPluginSchemaJsonResult: required")
+	}
+	type Plain InstallPluginSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.PreviousVersion != nil && utf8.RuneCountInString(string(*plain.PreviousVersion)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "previous_version", 1)
+	}
+	*j = InstallPluginSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InstallPluginSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in InstallPluginSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in InstallPluginSchemaJson: required")
+	}
+	type Plain InstallPluginSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = InstallPluginSchemaJson(plain)
+	return nil
+}
+
+// A plugin installed in the daemon, with the state of its process.
+type InstalledPlugin struct {
+	// Human-readable reason why the plugin failed. The daemon sets it only when
+	// status is 'error' (not enforced by the schema).
+	Error *string `json:"error,omitempty,omitzero" yaml:"error,omitempty" mapstructure:"error,omitempty"`
+
+	// Manifest corresponds to the JSON schema field "manifest".
+	Manifest PluginManifest `json:"manifest" yaml:"manifest" mapstructure:"manifest"`
+
+	// State of the plugin process: 'starting' (spawned, hello not received yet),
+	// 'running' (connected), 'stopped' (not running, e.g. exited cleanly) or 'error'
+	// (failed to start or crashed; see 'error').
+	Status InstalledPluginStatus `json:"status" yaml:"status" mapstructure:"status"`
+}
+
+type InstalledPluginStatus string
+
+const InstalledPluginStatusError InstalledPluginStatus = "error"
+const InstalledPluginStatusRunning InstalledPluginStatus = "running"
+const InstalledPluginStatusStarting InstalledPluginStatus = "starting"
+const InstalledPluginStatusStopped InstalledPluginStatus = "stopped"
+
+var enumValues_InstalledPluginStatus = []interface{}{
+	"starting",
+	"running",
+	"stopped",
+	"error",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InstalledPluginStatus) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_InstalledPluginStatus {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_InstalledPluginStatus, v)
+	}
+	*j = InstalledPluginStatus(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InstalledPlugin) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["manifest"]; raw != nil && !ok {
+		return fmt.Errorf("field manifest in InstalledPlugin: required")
+	}
+	if _, ok := raw["status"]; raw != nil && !ok {
+		return fmt.Errorf("field status in InstalledPlugin: required")
+	}
+	type Plain InstalledPlugin
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Error != nil && utf8.RuneCountInString(string(*plain.Error)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "error", 1)
+	}
+	*j = InstalledPlugin(plain)
+	return nil
+}
+
 // Params for the built-in 'launch_app' action: launches an application.
 type LaunchAppActionParams struct {
 	// Absolute path to the application or executable to launch.
@@ -1567,6 +1823,62 @@ func (j *ListDevicesSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = ListDevicesSchemaJson(plain)
+	return nil
+}
+
+// Returns every installed plugin with the state of its process. No params in v1.
+type ListPluginsSchemaJson struct {
+	// No parameters in v1.
+	Params ListPluginsSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result ListPluginsSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type ListPluginsSchemaJsonParams map[string]interface{}
+
+type ListPluginsSchemaJsonResult struct {
+	// Installed plugins.
+	Plugins []InstalledPlugin `json:"plugins" yaml:"plugins" mapstructure:"plugins"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListPluginsSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["plugins"]; raw != nil && !ok {
+		return fmt.Errorf("field plugins in ListPluginsSchemaJsonResult: required")
+	}
+	type Plain ListPluginsSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListPluginsSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ListPluginsSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in ListPluginsSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in ListPluginsSchemaJson: required")
+	}
+	type Plain ListPluginsSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = ListPluginsSchemaJson(plain)
 	return nil
 }
 
@@ -2589,5 +2901,65 @@ func (j *SetBindingSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetBindingSchemaJson(plain)
+	return nil
+}
+
+// Stops the plugin's process and deletes its folder. Bindings that use the
+// plugin's actions are left untouched (orphaned): while the plugin is missing,
+// firing them does nothing, and reinstalling the plugin makes them work again.
+type UninstallPluginSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params UninstallPluginSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Empty acknowledgement object. Reserved for future fields without breaking the
+	// schema.
+	Result UninstallPluginSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type UninstallPluginSchemaJsonParams struct {
+	// Id of the plugin to uninstall.
+	Id PluginID `json:"id" yaml:"id" mapstructure:"id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *UninstallPluginSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in UninstallPluginSchemaJsonParams: required")
+	}
+	type Plain UninstallPluginSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = UninstallPluginSchemaJsonParams(plain)
+	return nil
+}
+
+// Empty acknowledgement object. Reserved for future fields without breaking the
+// schema.
+type UninstallPluginSchemaJsonResult map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *UninstallPluginSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in UninstallPluginSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in UninstallPluginSchemaJson: required")
+	}
+	type Plain UninstallPluginSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = UninstallPluginSchemaJson(plain)
 	return nil
 }

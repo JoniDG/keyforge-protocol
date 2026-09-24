@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/inspect_plugin.schema.json",
+  "title": "Method: inspect_plugin",
+  "description": "Opens the '.keyforgeplugin' package at 'path' on the daemon host's filesystem and validates it exactly as install_plugin would (including rejecting a package with no entrypoint for the daemon host's OS), without installing or changing anything. Lets a client show a confirmation (name, author, version, actions) before installing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Filesystem path on the daemon host of the '.keyforgeplugin' package.",
+          "minLength": 1
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest"],
+      "properties": {
+        "manifest": { "$ref": "../common.schema.json#/$defs/PluginManifest" },
+        "installed_version": {
+          "type": "string",
+          "description": "Version of the plugin with the same id that is currently installed, if any. Installing the package would replace it.",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

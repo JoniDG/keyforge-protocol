@@ -1,0 +1,8 @@
+{
+  "type": "request",
+  "id": "d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f7a",
+  "method": "install_plugin",
+  "params": {
+    "path": "/Users/jdg/Downloads/spotify-0.2.0.keyforgeplugin"
+  }
+}

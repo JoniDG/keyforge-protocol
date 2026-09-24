@@ -1,0 +1,8 @@
+{
+  "type": "request",
+  "id": "f6a7b8c9-0d1e-4f2a-9b3c-4d5e6f7a8b9c",
+  "method": "uninstall_plugin",
+  "params": {
+    "id": "dev.jonidg.spotify"
+  }
+}

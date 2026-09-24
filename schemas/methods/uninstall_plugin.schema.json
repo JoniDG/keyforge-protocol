@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/uninstall_plugin.schema.json",
+  "title": "Method: uninstall_plugin",
+  "description": "Stops the plugin's process and deletes its folder. Bindings that use the plugin's actions are left untouched (orphaned): while the plugin is missing, firing them does nothing, and reinstalling the plugin makes them work again.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "../common.schema.json#/$defs/PluginID", "description": "Id of the plugin to uninstall." }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Empty acknowledgement object. Reserved for future fields without breaking the schema.",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}

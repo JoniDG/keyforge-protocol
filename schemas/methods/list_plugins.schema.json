@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/list_plugins.schema.json",
+  "title": "Method: list_plugins",
+  "description": "Returns every installed plugin with the state of its process. No params in v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "No parameters in v1.",
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugins"],
+      "properties": {
+        "plugins": {
+          "type": "array",
+          "description": "Installed plugins.",
+          "items": { "$ref": "../common.schema.json#/$defs/InstalledPlugin" }
+        }
+      }
+    }
+  }
+}

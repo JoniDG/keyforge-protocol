@@ -314,6 +314,26 @@
         }
       }
     },
+    "InstalledPlugin": {
+      "title": "InstalledPlugin",
+      "description": "A plugin installed in the daemon, with the state of its process.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "status"],
+      "properties": {
+        "manifest": { "$ref": "#/$defs/PluginManifest" },
+        "status": {
+          "type": "string",
+          "description": "State of the plugin process: 'starting' (spawned, hello not received yet), 'running' (connected), 'stopped' (not running, e.g. exited cleanly) or 'error' (failed to start or crashed; see 'error').",
+          "enum": ["starting", "running", "stopped", "error"]
+        },
+        "error": {
+          "type": "string",
+          "description": "Human-readable reason why the plugin failed. The daemon sets it only when status is 'error' (not enforced by the schema).",
+          "minLength": 1
+        }
+      }
+    },
     "PluginManifest": {
       "title": "PluginManifest",
       "description": "Contents of the manifest.json file at the root of a plugin. A plugin is distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into '<config dir>/plugins/<id>/', taking the id from the manifest. All file paths in the manifest (icon, and entrypoint paths containing '/') are relative to the plugin root, use '/' as separator, and must stay inside the plugin root: the daemon rejects '..' segments and any path or archive entry that escapes the root.",
