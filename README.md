@@ -42,6 +42,7 @@ examples/
   frames/                # complete envelope frames (validated against envelope.schema.json)
   methods/               # logical { params, result } payloads (validated against the method schema)
   events/                # logical { data } payloads (validated against the event schema)
+  files/                 # on-disk file formats, e.g. plugin_manifest.json (validated against the matching common $def)
 go/                      # Go submodule (checked in; consumed via `go get`)
   go.mod                 # module github.com/JoniDG/keyforge-protocol/go
   protocol/              # generated Go types
@@ -76,6 +77,18 @@ Generated types land in `go/protocol/types.go` and `ts/src/*.ts` — both checke
 - Cross-file `$ref`s use **file-relative paths** (`../common.schema.json#/$defs/Device`), so both `ajv` and `go-jsonschema` resolve them consistently.
 - Method names and event names are **`snake_case`** (no `c2s_` / `s2c_` prefix — the envelope `type` already implies direction).
 - `additionalProperties: false` on every object. `required` declared explicitly.
+
+## Plugin manifest and package format
+
+A plugin declares itself in a `manifest.json`, defined by the `PluginManifest` type in [`schemas/common.schema.json`](schemas/common.schema.json). See [`examples/files/plugin_manifest.json`](examples/files/plugin_manifest.json) for a complete example.
+
+- **`id`** is reverse-DNS (`dev.jonidg.spotify`), so ids from different authors don't collide without a central registry.
+- **Actions** are bound as `plugin.<id>.<action id>` (e.g. `plugin.dev.jonidg.spotify.play_pause`). Action ids are `snake_case` and never contain dots, so the action id is everything after the last dot.
+- **`entrypoint`** maps each supported OS (`darwin`, `linux`, `windows`) to an executable plus optional `args`. A `path` containing `/` is relative to the plugin root; a bare name (e.g. `node`) is looked up on the `PATH`. The daemon knows nothing about runtimes; it just spawns the command.
+- **`protocol_version`** lets the daemon reject an incompatible plugin before spawning it.
+- An action's optional **`inputs`** restricts which input kinds (`key`, `encoder`) it can be bound to.
+
+Plugins are distributed as a **`.keyforgeplugin`** file: a zip archive with `manifest.json` at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into `<config dir>/plugins/<id>/`, taking the id from the manifest. All file paths in the manifest (`icon`, and entrypoint paths containing `/`) are relative to the plugin root, use `/` as separator (also on Windows), and must stay inside the plugin root: the daemon rejects `..` segments and any path or archive entry that escapes it.
 
 ## Consuming from Go
 

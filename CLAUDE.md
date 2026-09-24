@@ -24,6 +24,7 @@ schemas/
     input.schema.json
     ...
 examples/                      → frames de ejemplo válidos contra los schemas
+  files/                       → formatos de archivo on-disk (ej: plugin_manifest.json), validados contra el `$def` de common con el mismo nombre en PascalCase
 go/                            → submódulo Go publicado (CHECKED IN, no gitignored)
   go.mod                       → module github.com/JoniDG/keyforge-protocol/go
   protocol/types.go            → tipos Go generados (consumibles via `go get`)
@@ -32,7 +33,7 @@ ts/                            → npm package publicado (CHECKED IN, no gitigno
   tsconfig.json
   src/                         → tipos TS generados (auto, checked in)
   dist/                        → tsc output (.d.ts + .js, gitignored)
-Makefile                       → comandos: generate, build-ts, validate, clean
+Makefile                       → comandos: generate, build-ts, validate (+ validate-files), clean
 ```
 
 ## Envelope (wire protocol — DECIDIDO 2026-05-04)
@@ -88,12 +89,25 @@ Primer mensaje del cliente al conectar es un request `hello` con `protocol_versi
 - Versionar vía `$id` (path `/v1/`). Bumpear major al romper compatibilidad — y el cliente lo señala en el `hello`.
 - **Params de acciones built-in:** `Action.params` queda como `object` abierto (genérico). Los params concretos de cada acción built-in viven como `$defs` en `common.schema.json` con el nombre `<Type>ActionParams` (ej: `DelayActionParams`, `MacroActionParams`, `SendKeysActionParams`, `LaunchAppActionParams`). El daemon valida `Action.params` contra el `$def` que corresponde al `type` — mismo esquema two-step que envelope→método. El schema **no** discrimina por `type`; reglas semánticas (ej: un step de `macro` no puede ser otro `macro`) se aplican en `keyforge-core`, no acá. Acciones que componen otras (`macro`) referencian el `$def` genérico `#/$defs/Action` para sus sub-acciones.
 
+## Manifest y paquete de plugins (DECIDIDO 2026-09-24)
+
+- **Manifest** = `$def PluginManifest` en `common.schema.json` (contrato de archivo on-disk, igual que `ExportedProfile`; no es un mensaje del wire). Ejemplo validado en `examples/files/plugin_manifest.json` vía `make validate-files`.
+- **`id` reverse-DNS** (`dev.jonidg.spotify`), para que no choquen ids de distintos autores sin un registry central. `Action.type` de un plugin es `plugin.<id>.<action_id>`; el `action_id` es snake_case sin puntos, así que se parsea cortando en el **último** punto.
+- **`entrypoint` por OS** (claves GOOS `darwin`/`linux`/`windows`) → `PluginCommand {path, args?}`. Un `path` con `/` es relativo a la raíz del plugin; un nombre pelado (`node`) se busca en el PATH. El daemon no conoce runtimes. Los OS soportados son las claves presentes.
+- `manifest_version` (const 1) versiona el formato del archivo; `protocol_version` (const "1") permite rechazar un plugin incompatible antes de lanzarlo.
+- `PluginAction.inputs` opcional (`InputKind[]`) restringe a qué tipo de input se puede bindear la acción (equivalente a `Controllers` de Stream Deck). Los params reusan `ParamSpec`, que se movió a `common`.
+- **Paquete `.keyforgeplugin`** (en minúsculas): zip con `manifest.json` en la raíz (sin carpeta que lo envuelva). Se instala extrayéndolo en `<config dir>/plugins/<id>/`.
+- **Paths de archivo** (`icon`, `entrypoint` con `/`): relativos a la raíz del plugin, siempre con `/` (también en Windows). El schema rechaza lo sintáctico (`/` inicial, `\`, `:`); lo que **no** puede expresar en RE2 sin lookaheads —segmentos `..`, zip-slip al extraer, unicidad de `actions[].id`/`params[].name`— lo valida `keyforge-core`, y así queda escrito en las descripciones del schema.
+- Los `pattern` tienen que compilar en **RE2**: el Go generado ignora el error de `regexp.MatchString`, así que un patrón inválido rechazaría todos los manifests en silencio.
+- Fuera de v1: Property Inspector HTML, permisos, estados/íconos por acción, multi-arch dentro de un mismo OS. El **contrato de runtime** (cómo el daemon lanza al plugin y le despacha acciones) va en un PR aparte.
+
 ## Comandos
 
 ```bash
 make generate    # genera tipos Go (go/protocol/) y TS (ts/src/) desde schemas/
 make build-ts    # cd ts && npm install && tsc → ts/dist/ (.d.ts + .js)
-make validate    # valida los archivos en examples/ contra sus schemas
+make validate    # valida los archivos en examples/ contra sus schemas (incluye validate-files:
+                 # examples/files/<snake>.json contra common#/$defs/<Pascal>)
 make clean       # borra ts/dist/
 ```
 
