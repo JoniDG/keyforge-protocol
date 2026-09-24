@@ -44,9 +44,9 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Stable identifier of the peer implementation.",
+          "description": "Stable identifier of the peer implementation. A plugin must send its PluginID here; the daemon checks it against the plugin its auth token belongs to.",
           "minLength": 1,
-          "examples": ["keyforge-desktop", "keyforged", "keyforge-plugin-spotify"]
+          "examples": ["keyforge-desktop", "keyforged", "dev.jonidg.spotify"]
         },
         "version": {
           "type": "string",

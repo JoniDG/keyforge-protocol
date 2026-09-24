@@ -26,6 +26,21 @@ export type InputKind = "key" | "encoder";
  * via the `definition` "InputAction".
  */
 export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "click";
+/**
+ * Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "PluginID".
+ */
+export type PluginID = string;
+/**
+ * Id of the plugin being launched (its manifest id).
+ */
+export type PluginID1 = string;
+/**
+ * Globally unique reverse-DNS plugin id; install folder name and <plugin_id> in Action.type.
+ */
+export type PluginID2 = string;
 
 /**
  * Shared type definitions referenced by message schemas.
@@ -272,6 +287,23 @@ export interface ParamSpec {
   placeholder?: string;
 }
 /**
+ * Connection info the daemon hands to a plugin process it spawns, serialized as JSON in the KEYFORGE_PLUGIN_INFO environment variable (an env var rather than CLI args, so the token is not visible in the process list). The plugin connects to ws_url, sends hello with client.name set to plugin_id, and must exit when that connection closes.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "PluginLaunchInfo".
+ */
+export interface PluginLaunchInfo {
+  plugin_id: PluginID1;
+  /**
+   * WebSocket URL to connect to, including the per-plugin auth token as a query param. Treat it as a secret: the token identifies the plugin to the daemon and is distinct from the GUI's session token.
+   */
+  ws_url: string;
+  /**
+   * Protocol major version the daemon speaks. The plugin sends it back in hello. Currently '1'.
+   */
+  protocol_version: "1";
+}
+/**
  * Contents of the manifest.json file at the root of a plugin. A plugin is distributed as a '.keyforgeplugin' file: a zip archive with manifest.json at its root (no wrapping folder) plus every file the manifest references. The daemon installs it by extracting the archive into '<config dir>/plugins/<id>/', taking the id from the manifest. All file paths in the manifest (icon, and entrypoint paths containing '/') are relative to the plugin root, use '/' as separator, and must stay inside the plugin root: the daemon rejects '..' segments and any path or archive entry that escapes the root.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -282,10 +314,7 @@ export interface PluginManifest {
    * Manifest format version. Currently 1; bumped if the manifest shape changes.
    */
   manifest_version: 1;
-  /**
-   * Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
-   */
-  id: string;
+  id: PluginID2;
   /**
    * Human-friendly plugin name for the UI.
    */

@@ -1,0 +1,5 @@
+{
+  "plugin_id": "dev.jonidg.spotify",
+  "ws_url": "ws://127.0.0.1:53817/ws?token=3f9c2a7e1b",
+  "protocol_version": "1"
+}

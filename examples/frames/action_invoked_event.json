@@ -1,0 +1,20 @@
+{
+  "type": "event",
+  "name": "action_invoked",
+  "data": {
+    "context": "b7e1c04a9f",
+    "action": {
+      "id": "volume",
+      "params": {
+        "step": "5"
+      }
+    },
+    "input": {
+      "device_id": "VID_6D82_PID_DC83",
+      "kind": "encoder",
+      "input_id": "encoder_0",
+      "action": "rotate_cw",
+      "timestamp_ms": 1790000000000
+    }
+  }
+}
