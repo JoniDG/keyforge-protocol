@@ -1,0 +1,10 @@
+{
+  "type": "request",
+  "id": "8b1e5d2f-3c7a-4e9b-a0d6-1f4c8e2b7a53",
+  "method": "set_input_color",
+  "params": {
+    "device_id": "VID_6D82_PID_DC83",
+    "input_id": "key_0x68",
+    "color": "#ff0000"
+  }
+}

@@ -113,6 +113,18 @@ Clients manage plugins through four methods. The daemon does all filesystem work
 
 Both `inspect_plugin` and `install_plugin` reject a package that has no entrypoint for the daemon host's OS, so a plugin that can't run is never installed.
 
+## Input colors (RGB)
+
+A hardware-agnostic way to light up keys, independent of each device's lighting protocol:
+
+- **Capability.** `list_devices` marks each input that has an RGB LED with `rgb: true` (absent means no LED). Clients never need to know the hardware.
+- **Color format.** `Color` is a `#RRGGBB` hex string, accepted in any case and returned lowercase by the daemon. `#000000` turns the LED off.
+- **Colors belong to profiles.** `Profile.colors` (and `ExportedProfile.colors`) is a list of `InputColor { device_id, input_id, color }`. When a profile becomes active, the daemon repaints every RGB input with that profile's colors; an RGB input without an entry is turned off.
+- **Setting a color.** `set_input_color { device_id, input_id, color } → {}` writes the color into the **active** profile and paints it on the device right away (same scope as `set_binding`). The daemon rejects unknown inputs and inputs without an LED.
+- **Reading colors.** `Input.color` in `list_devices` is the color the active profile paints on that input; absent means off.
+
+Lighting effects (breathing, rainbow, ...), batch updates and plugin access to LEDs are out of scope for now; they can be added without breaking this contract.
+
 ## Consuming from Go
 
 The generated Go types are published as a submodule under [`go/`](./go) so any consumer can pull them in:

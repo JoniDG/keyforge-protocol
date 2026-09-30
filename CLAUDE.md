@@ -122,6 +122,17 @@ Cuatro métodos. Igual que en `import_profile`, el daemon es el que toca el file
 - Los códigos de error de estos métodos los define `keyforge-core` como sentinels (mismo criterio que import/export); el schema no los enumera.
 - Pendiente (aditivo, sin fecha): un evento de cambio de estado de plugins para que la GUI se entere de crashes sin re-pedir `list_plugins`.
 
+## Colores de inputs / RGB (DECIDIDO 2026-09-30)
+
+API hardware-agnóstica: "poné este color en el input X". Lo específico de cada dispositivo (en el keypad de referencia, pasar al efecto `05` user light antes de pintar por tecla) lo resuelve el daemon.
+
+- **`$def Color`** = string `#RRGGBB` (se acepta en cualquier case; el daemon lo guarda y devuelve en minúsculas para que la GUI compare strings; patrón RE2). Hex y no `{r,g,b}`: es lo que devuelve un color picker y se lee bien en JSON. `#000000` = apagado.
+- **Capacidad:** `Input.rgb?: boolean` (ausente = false). Boolean y no enum (`rgb`/`mono`): agregar valores a un enum después rompe clientes Go viejos. LEDs monocromo, si aparecen, van como campo aditivo aparte.
+- **Los colores son por perfil** (decisión del owner): `Profile.colors?` / `ExportedProfile.colors?` = `InputColor[] {device_id, input_id, color}` (array como `bindings`, no mapa). Al activarse un perfil el daemon repinta todos los inputs RGB; un input RGB sin entrada queda apagado. Unicidad por `(device_id, input_id)` la garantiza `keyforge-core`, no el schema. Opcionales para no romper consumidores contra un daemon viejo; `ExportedProfile.version` sigue en `1` (bumpear no ayuda: un lector viejo rechaza el campo nuevo si valida contra el schema, o lo descarta en silencio si solo hace `json.Unmarshal`; en ningún caso lo aprovecha).
+- **`set_input_color {device_id, input_id, color} → {}`**: escribe en el perfil **activo** (igual que `set_binding`, sin `profile_id`) y pinta en el momento. Rechaza inputs desconocidos o sin LED; los códigos de error los define `keyforge-core` como sentinels.
+- **Estado leíble:** `Input.color?` en `list_devices` = color que el perfil activo pinta en ese input (ausente = apagado). El daemon persiste los colores dentro del perfil y los re-aplica al reconectar el dispositivo.
+- Fuera de v1: efectos/animaciones, método batch, que un plugin pinte LEDs (la allowlist de plugins sigue siendo solo `hello`). La acción built-in para cambiar colores es trabajo aparte.
+
 ## Comandos
 
 ```bash

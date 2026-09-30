@@ -13,6 +13,10 @@ export type DeviceID = string;
  * Kind of physical input.
  */
 export type InputKind = "key" | "encoder";
+/**
+ * Color the active profile paints on this input. Only set on RGB inputs that have a color in the active profile; absent means the LED is off.
+ */
+export type Color = string;
 
 /**
  * Returns the HID devices currently known to the daemon. No filters in v1; clients filter client-side if needed.
@@ -76,4 +80,9 @@ export interface Input {
    * Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.
    */
   label?: string;
+  /**
+   * Whether the input has an RGB LED the daemon can drive through set_input_color. Absent means false.
+   */
+  rgb?: boolean;
+  color?: Color;
 }
