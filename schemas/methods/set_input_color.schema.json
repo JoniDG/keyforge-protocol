@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/set_input_color.schema.json",
+  "title": "Method: set_input_color",
+  "description": "Sets the LED color of an RGB-capable input in the active profile and paints it on the device. The pair (device_id, input_id) is the unique key; calling this method again replaces the previous color, and '#000000' turns the LED off. Colors belong to the profile: switching profiles repaints every RGB input with the new profile's colors. The daemon rejects inputs that are unknown or have no RGB LED (Input.rgb is not true).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "input_id", "color"],
+      "properties": {
+        "device_id": { "$ref": "../common.schema.json#/$defs/DeviceID" },
+        "input_id": {
+          "type": "string",
+          "description": "Logical identifier of the input within the device. Matches Device.inputs[].id.",
+          "minLength": 1
+        },
+        "color": { "$ref": "../common.schema.json#/$defs/Color" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Empty acknowledgement object.",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}

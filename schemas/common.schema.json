@@ -157,6 +157,11 @@
           "type": "array",
           "description": "Bindings that belong to this profile.",
           "items": { "$ref": "#/$defs/Binding" }
+        },
+        "colors": {
+          "type": "array",
+          "description": "LED colors this profile paints on RGB-capable inputs, applied by the daemon whenever the profile becomes active. An RGB input with no entry here is turned off. At most one entry per (device_id, input_id); the daemon enforces uniqueness. Absent means no colors.",
+          "items": { "$ref": "#/$defs/InputColor" }
         }
       }
     },
@@ -186,6 +191,11 @@
           "type": "array",
           "description": "Bindings that belong to the exported profile.",
           "items": { "$ref": "#/$defs/Binding" }
+        },
+        "colors": {
+          "type": "array",
+          "description": "LED colors of the exported profile. Same semantics as Profile.colors.",
+          "items": { "$ref": "#/$defs/InputColor" }
         }
       }
     },
@@ -206,7 +216,38 @@
           "type": "string",
           "description": "Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.",
           "minLength": 1
+        },
+        "rgb": {
+          "type": "boolean",
+          "description": "Whether the input has an RGB LED the daemon can drive through set_input_color. Absent means false."
+        },
+        "color": {
+          "$ref": "#/$defs/Color",
+          "description": "Color the active profile paints on this input. Only set on RGB inputs that have a color in the active profile; absent means the LED is off."
         }
+      }
+    },
+    "Color": {
+      "title": "Color",
+      "description": "RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and returns it lowercase, so clients can compare colors as strings. '#000000' turns the LED off. Hardware-agnostic: the daemon translates it to whatever the device understands (e.g. switching the device to a per-key lighting mode first).",
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$",
+      "examples": ["#ff0000", "#00FF7F", "#000000"]
+    },
+    "InputColor": {
+      "title": "InputColor",
+      "description": "LED color assigned to one input of a device.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "input_id", "color"],
+      "properties": {
+        "device_id": { "$ref": "#/$defs/DeviceID" },
+        "input_id": {
+          "type": "string",
+          "description": "Logical identifier of the input within the device. Matches Device.inputs[].id.",
+          "minLength": 1
+        },
+        "color": { "$ref": "#/$defs/Color" }
       }
     },
     "Device": {

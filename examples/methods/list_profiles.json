@@ -17,6 +17,13 @@
               }
             }
           }
+        ],
+        "colors": [
+          {
+            "device_id": "VID_1234_PID_5678",
+            "input_id": "key_0x04",
+            "color": "#ff0000"
+          }
         ]
       },
       {

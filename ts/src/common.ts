@@ -27,6 +27,17 @@ export type InputKind = "key" | "encoder";
  */
 export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "click";
 /**
+ * RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and returns it lowercase, so clients can compare colors as strings. '#000000' turns the LED off. Hardware-agnostic: the daemon translates it to whatever the device understands (e.g. switching the device to a per-key lighting mode first).
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "Color".
+ */
+export type Color = string;
+/**
+ * RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and returns it lowercase, so clients can compare colors as strings. '#000000' turns the LED off. Hardware-agnostic: the daemon translates it to whatever the device understands (e.g. switching the device to a per-key lighting mode first).
+ */
+export type Color1 = string;
+/**
  * Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -166,6 +177,24 @@ export interface Profile {
    * Bindings that belong to this profile.
    */
   bindings: Binding[];
+  /**
+   * LED colors this profile paints on RGB-capable inputs, applied by the daemon whenever the profile becomes active. An RGB input with no entry here is turned off. At most one entry per (device_id, input_id); the daemon enforces uniqueness. Absent means no colors.
+   */
+  colors?: InputColor[];
+}
+/**
+ * LED color assigned to one input of a device.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "InputColor".
+ */
+export interface InputColor {
+  device_id: DeviceID;
+  /**
+   * Logical identifier of the input within the device. Matches Device.inputs[].id.
+   */
+  input_id: string;
+  color: Color;
 }
 /**
  * Portable, on-disk representation of a profile, written by export_profile and read by import_profile. Carries no server-local id: the id is meaningless outside the originating installation, so import always assigns a fresh one. The 'version' field lets readers detect and adapt to format changes.
@@ -190,6 +219,10 @@ export interface ExportedProfile {
    * Bindings that belong to the exported profile.
    */
   bindings: Binding[];
+  /**
+   * LED colors of the exported profile. Same semantics as Profile.colors.
+   */
+  colors?: InputColor[];
 }
 /**
  * A single physical input exposed by a device (a key or an encoder).
@@ -207,6 +240,11 @@ export interface Input {
    * Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.
    */
   label?: string;
+  /**
+   * Whether the input has an RGB LED the daemon can drive through set_input_color. Absent means false.
+   */
+  rgb?: boolean;
+  color?: Color1;
 }
 /**
  * A HID device known to the daemon. Returned by list_devices.

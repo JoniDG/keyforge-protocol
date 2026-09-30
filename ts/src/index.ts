@@ -21,6 +21,7 @@ export type { MethodRenameProfile } from './methods/rename_profile.js';
 export type { MethodSetActiveProfile } from './methods/set_active_profile.js';
 export type { MethodSetAutoSwitch } from './methods/set_auto_switch.js';
 export type { MethodSetBinding } from './methods/set_binding.js';
+export type { MethodSetInputColor } from './methods/set_input_color.js';
 export type { MethodUninstallPlugin } from './methods/uninstall_plugin.js';
 
 export type { EventActionInvoked } from './events/action_invoked.js';

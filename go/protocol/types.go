@@ -334,6 +334,26 @@ func (j *Binding) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and
+// returns it lowercase, so clients can compare colors as strings. '#000000' turns
+// the LED off. Hardware-agnostic: the daemon translates it to whatever the device
+// understands (e.g. switching the device to a per-key lighting mode first).
+type Color string
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Color) UnmarshalJSON(value []byte) error {
+	type Plain Color
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^#[0-9A-Fa-f]{6}$`, string(plain)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "", `^#[0-9A-Fa-f]{6}$`)
+	}
+	*j = Color(plain)
+	return nil
+}
+
 // Creates a new profile. The server generates the id and returns the profile with
 // an empty bindings array.
 type CreateProfileSchemaJson struct {
@@ -893,6 +913,9 @@ type ExportedProfile struct {
 	// Bindings that belong to the exported profile.
 	Bindings []Binding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
 
+	// LED colors of the exported profile. Same semantics as Profile.colors.
+	Colors []InputColor `json:"colors,omitempty,omitzero" yaml:"colors,omitempty" mapstructure:"colors,omitempty"`
+
 	// Magic marker identifying the file as a KeyForge profile export.
 	Format string `json:"format" yaml:"format" mapstructure:"format"`
 
@@ -1186,6 +1209,10 @@ func (j *ImportProfileSchemaJson) UnmarshalJSON(value []byte) error {
 
 // A single physical input exposed by a device (a key or an encoder).
 type Input struct {
+	// Color the active profile paints on this input. Only set on RGB inputs that have
+	// a color in the active profile; absent means the LED is off.
+	Color *Color `json:"color,omitempty,omitzero" yaml:"color,omitempty" mapstructure:"color,omitempty"`
+
 	// Logical identifier of the input within the device (e.g. 'key_0x04',
 	// 'encoder_0'). Matches InputEvent.input_id and Binding.input_id.
 	Id string `json:"id" yaml:"id" mapstructure:"id"`
@@ -1196,6 +1223,10 @@ type Input struct {
 	// Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients
 	// fall back to id.
 	Label *string `json:"label,omitempty,omitzero" yaml:"label,omitempty" mapstructure:"label,omitempty"`
+
+	// Whether the input has an RGB LED the daemon can drive through set_input_color.
+	// Absent means false.
+	Rgb *bool `json:"rgb,omitempty,omitzero" yaml:"rgb,omitempty" mapstructure:"rgb,omitempty"`
 }
 
 type InputAction string
@@ -1231,6 +1262,45 @@ func (j *InputAction) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_InputAction, v)
 	}
 	*j = InputAction(v)
+	return nil
+}
+
+// LED color assigned to one input of a device.
+type InputColor struct {
+	// Color corresponds to the JSON schema field "color".
+	Color Color `json:"color" yaml:"color" mapstructure:"color"`
+
+	// DeviceId corresponds to the JSON schema field "device_id".
+	DeviceId DeviceID `json:"device_id" yaml:"device_id" mapstructure:"device_id"`
+
+	// Logical identifier of the input within the device. Matches Device.inputs[].id.
+	InputId string `json:"input_id" yaml:"input_id" mapstructure:"input_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InputColor) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["color"]; raw != nil && !ok {
+		return fmt.Errorf("field color in InputColor: required")
+	}
+	if _, ok := raw["device_id"]; raw != nil && !ok {
+		return fmt.Errorf("field device_id in InputColor: required")
+	}
+	if _, ok := raw["input_id"]; raw != nil && !ok {
+		return fmt.Errorf("field input_id in InputColor: required")
+	}
+	type Plain InputColor
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.InputId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "input_id", 1)
+	}
+	*j = InputColor(plain)
 	return nil
 }
 
@@ -2386,6 +2456,12 @@ type Profile struct {
 	// Bindings that belong to this profile.
 	Bindings []Binding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
 
+	// LED colors this profile paints on RGB-capable inputs, applied by the daemon
+	// whenever the profile becomes active. An RGB input with no entry here is turned
+	// off. At most one entry per (device_id, input_id); the daemon enforces
+	// uniqueness. Absent means no colors.
+	Colors []InputColor `json:"colors,omitempty,omitzero" yaml:"colors,omitempty" mapstructure:"colors,omitempty"`
+
 	// Stable server-generated identifier for the profile.
 	Id string `json:"id" yaml:"id" mapstructure:"id"`
 
@@ -2901,6 +2977,82 @@ func (j *SetBindingSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetBindingSchemaJson(plain)
+	return nil
+}
+
+// Sets the LED color of an RGB-capable input in the active profile and paints it
+// on the device. The pair (device_id, input_id) is the unique key; calling this
+// method again replaces the previous color, and '#000000' turns the LED off.
+// Colors belong to the profile: switching profiles repaints every RGB input with
+// the new profile's colors. The daemon rejects inputs that are unknown or have no
+// RGB LED (Input.rgb is not true).
+type SetInputColorSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params SetInputColorSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Empty acknowledgement object.
+	Result SetInputColorSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type SetInputColorSchemaJsonParams struct {
+	// Color corresponds to the JSON schema field "color".
+	Color Color `json:"color" yaml:"color" mapstructure:"color"`
+
+	// DeviceId corresponds to the JSON schema field "device_id".
+	DeviceId DeviceID `json:"device_id" yaml:"device_id" mapstructure:"device_id"`
+
+	// Logical identifier of the input within the device. Matches Device.inputs[].id.
+	InputId string `json:"input_id" yaml:"input_id" mapstructure:"input_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetInputColorSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["color"]; raw != nil && !ok {
+		return fmt.Errorf("field color in SetInputColorSchemaJsonParams: required")
+	}
+	if _, ok := raw["device_id"]; raw != nil && !ok {
+		return fmt.Errorf("field device_id in SetInputColorSchemaJsonParams: required")
+	}
+	if _, ok := raw["input_id"]; raw != nil && !ok {
+		return fmt.Errorf("field input_id in SetInputColorSchemaJsonParams: required")
+	}
+	type Plain SetInputColorSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.InputId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "input_id", 1)
+	}
+	*j = SetInputColorSchemaJsonParams(plain)
+	return nil
+}
+
+// Empty acknowledgement object.
+type SetInputColorSchemaJsonResult map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetInputColorSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in SetInputColorSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in SetInputColorSchemaJson: required")
+	}
+	type Plain SetInputColorSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetInputColorSchemaJson(plain)
 	return nil
 }
 

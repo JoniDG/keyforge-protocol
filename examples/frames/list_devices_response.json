@@ -13,8 +13,8 @@
         "serial_number": "ABC123",
         "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000/USB2.0-CRW@14100000",
         "inputs": [
-          { "id": "key_0x04", "kind": "key", "label": "Key 1" },
-          { "id": "key_0x05", "kind": "key", "label": "Key 2" },
+          { "id": "key_0x04", "kind": "key", "label": "Key 1", "rgb": true, "color": "#ff0000" },
+          { "id": "key_0x05", "kind": "key", "label": "Key 2", "rgb": true },
           { "id": "encoder_0", "kind": "encoder", "label": "Encoder" }
         ]
       },

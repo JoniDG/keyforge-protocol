@@ -1,0 +1,25 @@
+{
+  "format": "keyforge.profile",
+  "version": 1,
+  "name": "Streaming",
+  "bindings": [
+    {
+      "device_id": "VID_6D82_PID_DC83",
+      "input_id": "key_0x68",
+      "trigger": "press",
+      "action": {
+        "type": "launch_app",
+        "params": {
+          "path": "/Applications/Spotify.app"
+        }
+      }
+    }
+  ],
+  "colors": [
+    {
+      "device_id": "VID_6D82_PID_DC83",
+      "input_id": "key_0x68",
+      "color": "#1DB954"
+    }
+  ]
+}

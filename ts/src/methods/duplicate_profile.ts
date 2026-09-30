@@ -13,6 +13,10 @@ export type DeviceID = string;
  * What happened on the input.
  */
 export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "click";
+/**
+ * RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and returns it lowercase, so clients can compare colors as strings. '#000000' turns the LED off. Hardware-agnostic: the daemon translates it to whatever the device understands (e.g. switching the device to a per-key lighting mode first).
+ */
+export type Color = string;
 
 /**
  * Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings. Does not change the active profile.
@@ -48,6 +52,10 @@ export interface Profile {
    * Bindings that belong to this profile.
    */
   bindings: Binding[];
+  /**
+   * LED colors this profile paints on RGB-capable inputs, applied by the daemon whenever the profile becomes active. An RGB input with no entry here is turned off. At most one entry per (device_id, input_id); the daemon enforces uniqueness. Absent means no colors.
+   */
+  colors?: InputColor[];
 }
 /**
  * Maps an input on a specific device to an action.
@@ -72,4 +80,15 @@ export interface Action {
   params?: {
     [k: string]: unknown;
   };
+}
+/**
+ * LED color assigned to one input of a device.
+ */
+export interface InputColor {
+  device_id: DeviceID;
+  /**
+   * Logical identifier of the input within the device. Matches Device.inputs[].id.
+   */
+  input_id: string;
+  color: Color;
 }
