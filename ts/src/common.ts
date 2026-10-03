@@ -295,7 +295,7 @@ export interface AutoSwitchRule {
    */
   app: string;
   /**
-   * Identifier of the profile to activate when this app is frontmost.
+   * Identifier of the profile to activate when this app is frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
    */
   profile_id: string;
 }

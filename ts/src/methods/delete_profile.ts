@@ -6,7 +6,7 @@
  */
 
 /**
- * Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned.
+ * Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned. Auto-switch rules whose profile_id points to the deleted profile are deleted with it, so the stored rule set never references a missing profile.
  */
 export interface MethodDeleteProfile {
   params: {

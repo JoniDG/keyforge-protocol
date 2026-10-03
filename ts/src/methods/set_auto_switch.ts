@@ -6,7 +6,7 @@
  */
 
 /**
- * Replaces the entire auto-switch configuration in one shot (bulk set, not per-rule CRUD): the master toggle and the full rule set. The result echoes the persisted state.
+ * Replaces the entire auto-switch configuration in one shot (bulk set, not per-rule CRUD): the master toggle and the full rule set. The result echoes the persisted state. The daemon rejects the whole request with error code PROFILE_NOT_FOUND if any rule's profile_id does not exist; nothing is persisted in that case.
  */
 export interface MethodSetAutoSwitch {
   params: {
@@ -39,7 +39,7 @@ export interface AutoSwitchRule {
    */
   app: string;
   /**
-   * Identifier of the profile to activate when this app is frontmost.
+   * Identifier of the profile to activate when this app is frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
    */
   profile_id: string;
 }

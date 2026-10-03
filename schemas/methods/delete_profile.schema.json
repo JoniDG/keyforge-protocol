@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://keyforge.dev/schemas/v1/methods/delete_profile.schema.json",
   "title": "Method: delete_profile",
-  "description": "Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned.",
+  "description": "Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned. Auto-switch rules whose profile_id points to the deleted profile are deleted with it, so the stored rule set never references a missing profile.",
   "type": "object",
   "additionalProperties": false,
   "required": ["params", "result"],

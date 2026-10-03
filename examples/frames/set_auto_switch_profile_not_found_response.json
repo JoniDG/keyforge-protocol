@@ -1,0 +1,9 @@
+{
+  "type": "response",
+  "id": "9b2f4c6e-1d3a-4f5b-8e7c-2a4b6c8d0e1f",
+  "ok": false,
+  "error": {
+    "code": "PROFILE_NOT_FOUND",
+    "message": "Auto-switch rule for app \"com.spotify.client\" references unknown profile \"p_missing\"."
+  }
+}
