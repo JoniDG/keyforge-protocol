@@ -258,7 +258,10 @@ type AutoSwitchRule struct {
 	// verbatim against the frontmost app.
 	App string `json:"app" yaml:"app" mapstructure:"app"`
 
-	// Identifier of the profile to activate when this app is frontmost.
+	// Identifier of the profile to activate when this app is frontmost. Must
+	// reference an existing profile: set_auto_switch rejects unknown ids with
+	// PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted
+	// profile.
 	ProfileId string `json:"profile_id" yaml:"profile_id" mapstructure:"profile_id"`
 }
 
@@ -464,7 +467,9 @@ func (j *DelayActionParams) UnmarshalJSON(value []byte) error {
 
 // Deletes a profile. The daemon never deletes the last remaining profile. Deleting
 // the active profile reassigns the active one, so the resulting active profile id
-// is always returned.
+// is always returned. Auto-switch rules whose profile_id points to the deleted
+// profile are deleted with it, so the stored rule set never references a missing
+// profile.
 type DeleteProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params DeleteProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -2830,7 +2835,9 @@ func (j *SetActiveProfileSchemaJson) UnmarshalJSON(value []byte) error {
 
 // Replaces the entire auto-switch configuration in one shot (bulk set, not
 // per-rule CRUD): the master toggle and the full rule set. The result echoes the
-// persisted state.
+// persisted state. The daemon rejects the whole request with error code
+// PROFILE_NOT_FOUND if any rule's profile_id does not exist; nothing is persisted
+// in that case.
 type SetAutoSwitchSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetAutoSwitchSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`

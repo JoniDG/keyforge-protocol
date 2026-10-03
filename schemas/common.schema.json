@@ -308,7 +308,7 @@
         },
         "profile_id": {
           "type": "string",
-          "description": "Identifier of the profile to activate when this app is frontmost.",
+          "description": "Identifier of the profile to activate when this app is frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.",
           "minLength": 1
         }
       }

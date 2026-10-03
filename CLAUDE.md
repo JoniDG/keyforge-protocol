@@ -133,6 +133,13 @@ API hardware-agnóstica: "poné este color en el input X". Lo específico de cad
 - **Estado leíble:** `Input.color?` en `list_devices` = color que el perfil activo pinta en ese input (ausente = apagado). El daemon persiste los colores dentro del perfil y los re-aplica al reconectar el dispositivo.
 - Fuera de v1: efectos/animaciones, método batch, que un plugin pinte LEDs (la allowlist de plugins sigue siendo solo `hello`). La acción built-in para cambiar colores es trabajo aparte.
 
+## Perfiles y auto-switch (DECIDIDO 2026-10-03)
+
+Ningún método deja reglas de auto-switch apuntando a un perfil inexistente. No se expresa en el schema (necesita estado); lo aplica `keyforge-core` y queda escrito en las descripciones. Un archivo de config editado a mano puede igual tener reglas huérfanas.
+
+- `delete_profile` borra también las reglas de auto-switch cuyo `profile_id` es el perfil borrado.
+- `set_auto_switch` rechaza el request entero con `PROFILE_NOT_FOUND` si alguna regla apunta a un perfil que no existe; no persiste nada. Excepción a "el schema no nombra códigos de error": `PROFILE_NOT_FOUND` ya lo emite `keyforge-core` y lo mapea `keyforge-desktop`, así que nombrarlo solo documenta un código que ya es parte del contrato.
+
 ## Comandos
 
 ```bash
