@@ -154,6 +154,24 @@ export interface MacroActionParams {
   steps: [Action, ...Action[]];
 }
 /**
+ * Params for the built-in 'set_color' action: paints the LED of an input. Fails when it runs if the target input is unknown or has no LED (the device may be disconnected when the binding is saved, so the daemon checks it then). device_id is the device of input_id: absent means the device that fired the action, and it is only valid together with input_id (device_id alone is rejected when the binding is saved).
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "SetColorActionParams".
+ */
+export interface SetColorActionParams {
+  color: Color;
+  /**
+   * Input to paint. Matches Device.inputs[].id. Absent means the input that fired the action; if nothing fired it (e.g. a test run from the GUI), the action fails.
+   */
+  input_id?: string;
+  device_id?: DeviceID;
+  /**
+   * false (default): paint only. The active profile's colors are untouched, Input.color keeps reporting the profile's color, and the profile's color comes back when a profile becomes active or the device reconnects. true: also write the color into the active profile, same as set_input_color.
+   */
+  persist?: boolean;
+}
+/**
  * Maps an input on a specific device to an action.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -348,9 +366,9 @@ export interface ParamSpec {
    */
   label: string;
   /**
-   * Param value type. Only 'string' in v1.
+   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker). An optional boolean that is absent means false. placeholder only applies to 'string'.
    */
-  type: "string";
+  type: "string" | "boolean" | "color";
   required: boolean;
   /**
    * Optional placeholder/example shown in the input.

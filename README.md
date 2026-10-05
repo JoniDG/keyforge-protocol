@@ -122,6 +122,7 @@ A hardware-agnostic way to light up keys, independent of each device's lighting 
 - **Colors belong to profiles.** `Profile.colors` (and `ExportedProfile.colors`) is a list of `InputColor { device_id, input_id, color }`. When a profile becomes active, the daemon repaints every RGB input with that profile's colors; an RGB input without an entry is turned off.
 - **Setting a color.** `set_input_color { device_id, input_id, color } → {}` writes the color into the **active** profile and paints it on the device right away (same scope as `set_binding`). The daemon rejects unknown inputs and inputs without an LED.
 - **Reading colors.** `Input.color` in `list_devices` is the color the active profile paints on that input; absent means off.
+- **From a binding.** The built-in `set_color` action (`SetColorActionParams { color, input_id?, device_id?, persist? }`) paints an LED when a binding fires. Without `input_id` it paints the input that fired the action (`device_id` defaults to that device and is only valid with `input_id`). By default the change is transient: the profile's colors are untouched and come back when a profile becomes active or the device reconnects. With `persist: true` it also writes the color into the active profile, like `set_input_color`. To change several keys at once, use a `macro` with several `set_color` steps.
 
 Lighting effects (breathing, rainbow, ...), batch updates and plugin access to LEDs are out of scope for now; they can be added without breaking this contract.
 

@@ -17,6 +17,15 @@
         "params": [
           { "name": "keys", "label": "Key combo", "type": "string", "required": true, "placeholder": "Ctrl+Shift+S" }
         ]
+      },
+      {
+        "type": "set_color",
+        "name": "Set color",
+        "params": [
+          { "name": "color", "label": "Color", "type": "color", "required": true },
+          { "name": "input_id", "label": "Input", "type": "string", "required": false, "placeholder": "Input that fired the action" },
+          { "name": "persist", "label": "Save to profile", "type": "boolean", "required": false }
+        ]
       }
     ]
   }
