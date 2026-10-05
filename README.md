@@ -125,6 +125,14 @@ A hardware-agnostic way to light up keys, independent of each device's lighting 
 
 Lighting effects (breathing, rainbow, ...), batch updates and plugin access to LEDs are out of scope for now; they can be added without breaking this contract.
 
+## Device layout and rotation
+
+Clients can draw any device with its physical layout, not just a known model:
+
+- **Layout.** `Input.layout` is an `InputLayout { x, y, w?, h? }` in key units (1 = one standard key; fractions allowed; `w`/`h` default to 1), the same model as QMK/VIA `info.json`. Coordinates are in the device's **canonical orientation**: origin at the top-left, `y` growing downwards. The shape comes from `kind` (key = rectangle, encoder = circle). If any input of a device lacks a layout, clients fall back to a view without positions (e.g. a list).
+- **Labels.** `Input.label` is a fixed name (e.g. `Enter`, `Play`) shown as-is in any orientation. Without one, clients name inputs by position: numbered per kind in reading order of the current, rotated view (by each input's top-left corner, `y` first, then `x`), so `Key 1` is always the top-left key as the device sits on the desk. Without a complete layout, inputs are numbered per kind in the order `list_devices` returns them.
+- **Rotation.** `Device.rotation` is `0`, `90`, `180` or `270` degrees clockwise applied to the canonical layout (absent means `0`). It is set with `set_device_rotation { device_id, rotation } → {}` and stored **per device, not per profile**. It is presentation only: bindings and colors stay tied to the input id.
+
 ## Consuming from Go
 
 The generated Go types are published as a submodule under [`go/`](./go) so any consumer can pull them in:

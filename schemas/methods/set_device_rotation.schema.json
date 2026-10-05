@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/set_device_rotation.schema.json",
+  "title": "Method: set_device_rotation",
+  "description": "Persists how the user has a device rotated on the desk, so clients draw its layout in that orientation. The rotation is stored per device (by device_id), not per profile: switching profiles does not change it. list_devices exposes it in Device.rotation. Presentation only: bindings and colors stay tied to input_id and are not touched. The daemon rejects unknown device_ids; error codes are defined by the daemon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "rotation"],
+      "properties": {
+        "device_id": { "$ref": "../common.schema.json#/$defs/DeviceID" },
+        "rotation": { "$ref": "../common.schema.json#/$defs/DeviceRotation" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Empty acknowledgement object.",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}

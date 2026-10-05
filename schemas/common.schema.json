@@ -214,9 +214,10 @@
         "kind": { "$ref": "#/$defs/InputKind" },
         "label": {
           "type": "string",
-          "description": "Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.",
+          "description": "Fixed name of the input (e.g. 'Enter', 'Play') that clients show as-is in any orientation. When absent, clients name the input by position: they number inputs per kind in reading order of the current view, sorting by each input's top-left corner after applying Device.rotation (y first, then x), so 'Key 1' is always the top-left key as the device sits on the desk. If the device has no complete layout, they number inputs per kind in the order list_devices returns them. Catalogs should not send positional labels like 'Key 1': they would be wrong once the device is rotated.",
           "minLength": 1
         },
+        "layout": { "$ref": "#/$defs/InputLayout" },
         "rgb": {
           "type": "boolean",
           "description": "Whether the input has an RGB LED the daemon can drive through set_input_color. Absent means false."
@@ -226,6 +227,41 @@
           "description": "Color the active profile paints on this input. Only set on RGB inputs that have a color in the active profile; absent means the LED is off."
         }
       }
+    },
+    "InputLayout": {
+      "title": "InputLayout",
+      "description": "Physical position and size of an input, in key units (1 = one standard key). Fractions are allowed (e.g. x: 5.5 leaves a gap before a column of encoders). Coordinates are in the device's canonical orientation, defined by the daemon's device catalog: the origin is the top-left corner and y grows downwards. This is a coordinate system, not how the user has the device on the desk (that is Device.rotation). The shape is not modeled: clients derive it from Input.kind (key = rectangle, encoder = circle). Clients can draw a device only when every one of its inputs has a layout; otherwise they fall back to a view without positions (e.g. a list). Prior art: the {x, y, w, h} key model of QMK/VIA info.json.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "Horizontal position of the input's top-left corner, in key units.",
+          "minimum": 0
+        },
+        "y": {
+          "type": "number",
+          "description": "Vertical position of the input's top-left corner, in key units. Grows downwards.",
+          "minimum": 0
+        },
+        "w": {
+          "type": "number",
+          "description": "Width in key units. Absent means 1.",
+          "exclusiveMinimum": 0
+        },
+        "h": {
+          "type": "number",
+          "description": "Height in key units. Absent means 1.",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "DeviceRotation": {
+      "title": "DeviceRotation",
+      "description": "Clockwise rotation, in degrees, applied to the canonical orientation of a device's layout so clients show it the way the user has the device on the desk. Presentation only: bindings and colors stay tied to the physical input (input_id) and do not change when the device is rotated. It is a per-device preference, not a per-profile one: switching profiles does not change it. Set through set_device_rotation and exposed in Device.rotation, where absent means 0.",
+      "type": "integer",
+      "enum": [0, 90, 180, 270]
     },
     "Color": {
       "title": "Color",
@@ -291,7 +327,8 @@
           "type": "array",
           "description": "Inputs (keys/encoders) the daemon knows this device exposes. Empty for unrecognized devices the daemon can't map.",
           "items": { "$ref": "#/$defs/Input" }
-        }
+        },
+        "rotation": { "$ref": "#/$defs/DeviceRotation" }
       }
     },
     "AutoSwitchRule": {

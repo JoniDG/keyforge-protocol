@@ -1,0 +1,9 @@
+{
+  "type": "request",
+  "id": "3c6a9e1f-7b2d-4f05-8a14-d9e2c5b7f630",
+  "method": "set_device_rotation",
+  "params": {
+    "device_id": "VID_6D82_PID_DC83",
+    "rotation": 90
+  }
+}

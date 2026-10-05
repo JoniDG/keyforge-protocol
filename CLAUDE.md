@@ -140,6 +140,17 @@ Ningún método deja reglas de auto-switch apuntando a un perfil inexistente. No
 - `delete_profile` borra también las reglas de auto-switch cuyo `profile_id` es el perfil borrado.
 - `set_auto_switch` rechaza el request entero con `PROFILE_NOT_FOUND` si alguna regla apunta a un perfil que no existe; no persiste nada. Excepción a "el schema no nombra códigos de error": `PROFILE_NOT_FOUND` ya lo emite `keyforge-core` y lo mapea `keyforge-desktop`, así que nombrarlo solo documenta un código que ya es parte del contrato.
 
+## Layout de dispositivos y rotación (DECIDIDO 2026-10-04)
+
+La distribución física viaja en el contrato para que la GUI pueda dibujar cualquier dispositivo, no solo el keypad de referencia. El catálogo de `keyforge-hid` completa el layout y `keyforge-core` persiste la rotación.
+
+- **`$def InputLayout {x, y, w?, h?}`** en unidades de tecla (1 = una tecla estándar, se aceptan fracciones; `w`/`h` ausentes = 1). Es el modelo de QMK/VIA (`info.json`). `Input.layout?` es opcional: si todos los inputs de un dispositivo traen layout, el cliente lo dibuja; si falta en alguno, cae a una vista sin posiciones (lista). La forma no se modela: sale de `kind` (key = rectángulo, encoder = círculo).
+- **Orientación canónica:** el layout es un sistema de coordenadas que define el catálogo (origen arriba a la izquierda, `y` crece hacia abajo), no cómo el usuario tiene apoyado el dispositivo.
+- **`Input.label` = nombre fijo** (`Enter`, `Play`) que se muestra igual en cualquier orientación. Si falta, el cliente numera por posición: por kind, en orden de lectura de la vista ya rotada, ordenando por la esquina superior izquierda de cada input (primero `y`, después `x`), así "Key 1" es siempre la de arriba a la izquierda tal como está apoyado. Sin layout completo, numera por kind en el orden en que `list_devices` devuelve los inputs. Los catálogos **no** mandan labels posicionales ("Key 1"): con la rotación quedarían mal. Cambio solo de descripción.
+- **`$def DeviceRotation`** = enum entero `0|90|180|270` (grados en sentido horario sobre la orientación canónica); `Device.rotation?` (ausente = 0). Solo presentación: bindings y colores siguen atados al `input_id`. Es **por dispositivo, no por perfil**: no cambia al cambiar de perfil.
+- **`set_device_rotation {device_id, rotation} → {}`** (ack vacío, como `set_input_color`): persiste por `device_id` y `list_devices` la expone. Rechaza `device_id` desconocidos; los códigos de error los define `keyforge-core`.
+- **Gotcha del generador Go:** si `common.schema.json` se procesa primero, `go-jsonschema` duplica un `$def` enum **entero** referenciado desde otro archivo (`DeviceRotation_1`). Por eso el `Makefile` le pasa métodos y eventos antes que `common`. Además, un `$ref` con `description` al lado hace que `json2ts` emita un alias duplicado (`Color1`): para `$def`s compartidos, la descripción va en el `$def`.
+
 ## Comandos
 
 ```bash
