@@ -131,7 +131,17 @@ API hardware-agnóstica: "poné este color en el input X". Lo específico de cad
 - **Los colores son por perfil** (decisión del owner): `Profile.colors?` / `ExportedProfile.colors?` = `InputColor[] {device_id, input_id, color}` (array como `bindings`, no mapa). Al activarse un perfil el daemon repinta todos los inputs RGB; un input RGB sin entrada queda apagado. Unicidad por `(device_id, input_id)` la garantiza `keyforge-core`, no el schema. Opcionales para no romper consumidores contra un daemon viejo; `ExportedProfile.version` sigue en `1` (bumpear no ayuda: un lector viejo rechaza el campo nuevo si valida contra el schema, o lo descarta en silencio si solo hace `json.Unmarshal`; en ningún caso lo aprovecha).
 - **`set_input_color {device_id, input_id, color} → {}`**: escribe en el perfil **activo** (igual que `set_binding`, sin `profile_id`) y pinta en el momento. Rechaza inputs desconocidos o sin LED; los códigos de error los define `keyforge-core` como sentinels.
 - **Estado leíble:** `Input.color?` en `list_devices` = color que el perfil activo pinta en ese input (ausente = apagado). El daemon persiste los colores dentro del perfil y los re-aplica al reconectar el dispositivo.
-- Fuera de v1: efectos/animaciones, método batch, que un plugin pinte LEDs (la allowlist de plugins sigue siendo solo `hello`). La acción built-in para cambiar colores es trabajo aparte.
+- Fuera de v1: efectos/animaciones, método batch, que un plugin pinte LEDs (la allowlist de plugins sigue siendo solo `hello`).
+
+## Acción built-in `set_color` (DECIDIDO 2026-10-05)
+
+Cambiar colores como side effect de un binding (indicador "grabando", "muteado", etc.).
+
+- **`$def SetColorActionParams {color, input_id?, device_id?, persist?}`** en `common`, como el resto de las `<Type>ActionParams`.
+- **Target:** sin `input_id` pinta el input que disparó la acción; sin `device_id`, el mismo dispositivo. `device_id` solo vale junto con `input_id` (`dependentRequired` en el schema; `go-jsonschema` lo ignora, así que core lo valida al guardar el binding). Sin disparo de hardware (prueba desde la GUI) y sin `input_id`, la acción falla. Un input desconocido o sin LED falla **al ejecutarse**, no al guardar el binding (el dispositivo puede estar desconectado). Todo esto lo valida `keyforge-core`.
+- **`persist` decide el alcance, por binding** (decisión del owner: tienen que existir las dos cosas). `false` (default) = efímero: solo pinta; `Profile.colors` no cambia, `Input.color` sigue mostrando el color del perfil y ese color vuelve al activarse un perfil o reconectar el dispositivo. `true` = además escribe en el perfil activo, igual que `set_input_color`.
+- "Cambiar el set de colores" desde una tecla = un `macro` con varios `set_color`. Sets con nombre y una acción "aplicá el set X" quedan como agregado futuro; el toggle (tocar de nuevo y volver al color anterior) es una acción de estado aparte, no parte de `set_color`.
+- **`ParamSpec.type`** suma `boolean` y `color` (un color picker en la GUI), así la GUI renderiza el formulario de `set_color` de forma genérica y los plugins también pueden pedir colores. Un boolean opcional ausente = `false`; `placeholder` solo aplica a `string`. Agregar valores a un enum rompe a un consumidor Go viejo: su `UnmarshalJSON` rechaza el valor y falla la respuesta **entera** de `list_actions`, `inspect_plugin`/`install_plugin`/`list_plugins` y la carga de cualquier `manifest.json` que use `boolean`/`color` (`ParamSpec` vive en `PluginManifest`); un desktop viejo parsea bien pero su formulario recibe un `type` que no conoce. Se aceptó porque core y desktop salen juntos y todavía no hay plugins de terceros.
 
 ## Perfiles y auto-switch (DECIDIDO 2026-10-03)
 

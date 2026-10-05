@@ -1,0 +1,21 @@
+{
+  "type": "request",
+  "id": "5d2e8b1c-7f3a-4c9e-b6d0-2a1f4e7c9b35",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x05",
+      "trigger": "press",
+      "action": {
+        "type": "macro",
+        "params": {
+          "steps": [
+            { "type": "set_color", "params": { "color": "#ff0000" } },
+            { "type": "set_color", "params": { "color": "#00ff7f", "input_id": "key_0x06", "persist": true } }
+          ]
+        }
+      }
+    }
+  }
+}

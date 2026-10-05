@@ -2166,16 +2166,23 @@ type ParamSpec struct {
 	// Required corresponds to the JSON schema field "required".
 	Required bool `json:"required" yaml:"required" mapstructure:"required"`
 
-	// Param value type. Only 'string' in v1.
+	// Param value type, which sets the JSON type written into Action.params: 'string'
+	// a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a
+	// color picker). An optional boolean that is absent means false. placeholder only
+	// applies to 'string'.
 	Type ParamSpecType `json:"type" yaml:"type" mapstructure:"type"`
 }
 
 type ParamSpecType string
 
+const ParamSpecTypeBoolean ParamSpecType = "boolean"
+const ParamSpecTypeColor ParamSpecType = "color"
 const ParamSpecTypeString ParamSpecType = "string"
 
 var enumValues_ParamSpecType = []interface{}{
 	"string",
+	"boolean",
+	"color",
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -3083,6 +3090,55 @@ func (j *SetBindingSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetBindingSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'set_color' action: paints the LED of an input. Fails
+// when it runs if the target input is unknown or has no LED (the device may be
+// disconnected when the binding is saved, so the daemon checks it then). device_id
+// is the device of input_id: absent means the device that fired the action, and it
+// is only valid together with input_id (device_id alone is rejected when the
+// binding is saved).
+type SetColorActionParams struct {
+	// Color corresponds to the JSON schema field "color".
+	Color Color `json:"color" yaml:"color" mapstructure:"color"`
+
+	// DeviceId corresponds to the JSON schema field "device_id".
+	DeviceId *DeviceID `json:"device_id,omitempty,omitzero" yaml:"device_id,omitempty" mapstructure:"device_id,omitempty"`
+
+	// Input to paint. Matches Device.inputs[].id. Absent means the input that fired
+	// the action; if nothing fired it (e.g. a test run from the GUI), the action
+	// fails.
+	InputId *string `json:"input_id,omitempty,omitzero" yaml:"input_id,omitempty" mapstructure:"input_id,omitempty"`
+
+	// false (default): paint only. The active profile's colors are untouched,
+	// Input.color keeps reporting the profile's color, and the profile's color comes
+	// back when a profile becomes active or the device reconnects. true: also write
+	// the color into the active profile, same as set_input_color.
+	Persist bool `json:"persist,omitempty,omitzero" yaml:"persist,omitempty" mapstructure:"persist,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetColorActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["color"]; raw != nil && !ok {
+		return fmt.Errorf("field color in SetColorActionParams: required")
+	}
+	type Plain SetColorActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.InputId != nil && utf8.RuneCountInString(string(*plain.InputId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "input_id", 1)
+	}
+	if v, ok := raw["persist"]; !ok || v == nil {
+		plain.Persist = false
+	}
+	*j = SetColorActionParams(plain)
 	return nil
 }
 

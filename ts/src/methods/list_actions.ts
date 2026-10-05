@@ -57,9 +57,9 @@ export interface ParamSpec {
    */
   label: string;
   /**
-   * Param value type. Only 'string' in v1.
+   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker). An optional boolean that is absent means false. placeholder only applies to 'string'.
    */
-  type: "string";
+  type: "string" | "boolean" | "color";
   required: boolean;
   /**
    * Optional placeholder/example shown in the input.
