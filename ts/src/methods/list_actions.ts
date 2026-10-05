@@ -6,6 +6,11 @@
  */
 
 /**
+ * Kind of physical input.
+ */
+export type InputKind = "key" | "encoder";
+
+/**
  * Returns the catalog of actions the daemon can bind to inputs, including the param shape each action needs so a client can render a config form. No params in v1.
  */
 export interface MethodListActions {
@@ -57,12 +62,28 @@ export interface ParamSpec {
    */
   label: string;
   /**
-   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker). An optional boolean that is absent means false. placeholder only applies to 'string'.
+   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action. An optional boolean that is absent means false. placeholder only applies to 'string'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected).
    */
-  type: "string" | "boolean" | "color";
+  type: "string" | "boolean" | "color" | "input";
   required: boolean;
   /**
    * Optional placeholder/example shown in the input.
    */
   placeholder?: string;
+  input_filter?: InputFilter;
+}
+/**
+ * Narrows which inputs a ParamSpec of type 'input' lets the user pick. Only valid with type 'input': a ParamSpec of any other type that carries it is rejected. Absent means any input of the device.
+ */
+export interface InputFilter {
+  /**
+   * Only inputs of these kinds. Absent means any kind.
+   *
+   * @minItems 1
+   */
+  kinds?: [InputKind, ...InputKind[]];
+  /**
+   * true: only inputs with an LED (Input.rgb). false or absent: no filtering by LED.
+   */
+  rgb?: boolean;
 }

@@ -1405,6 +1405,32 @@ func (j *InputEvent) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Narrows which inputs a ParamSpec of type 'input' lets the user pick. Only valid
+// with type 'input': a ParamSpec of any other type that carries it is rejected.
+// Absent means any input of the device.
+type InputFilter struct {
+	// Only inputs of these kinds. Absent means any kind.
+	Kinds []InputKind `json:"kinds,omitempty,omitzero" yaml:"kinds,omitempty" mapstructure:"kinds,omitempty"`
+
+	// true: only inputs with an LED (Input.rgb). false or absent: no filtering by
+	// LED.
+	Rgb *bool `json:"rgb,omitempty,omitzero" yaml:"rgb,omitempty" mapstructure:"rgb,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InputFilter) UnmarshalJSON(value []byte) error {
+	type Plain InputFilter
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Kinds != nil && len(plain.Kinds) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "kinds", 1)
+	}
+	*j = InputFilter(plain)
+	return nil
+}
+
 type InputKind string
 
 const InputKindEncoder InputKind = "encoder"
@@ -2154,6 +2180,9 @@ func (j *MacroActionParams) UnmarshalJSON(value []byte) error {
 
 // Describes one action parameter so a client can render an input for it.
 type ParamSpec struct {
+	// InputFilter corresponds to the JSON schema field "input_filter".
+	InputFilter *InputFilter `json:"input_filter,omitempty,omitzero" yaml:"input_filter,omitempty" mapstructure:"input_filter,omitempty"`
+
 	// Human-friendly field label.
 	Label string `json:"label" yaml:"label" mapstructure:"label"`
 
@@ -2168,8 +2197,21 @@ type ParamSpec struct {
 
 	// Param value type, which sets the JSON type written into Action.params: 'string'
 	// a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a
-	// color picker). An optional boolean that is absent means false. placeholder only
-	// applies to 'string'.
+	// color picker), 'input' a string holding the Input.id of an input on the same
+	// device as the binding that fires the action. An optional boolean that is absent
+	// means false. placeholder only applies to 'string'. 'input' is rendered as a
+	// picker listing that device's inputs (narrowed by input_filter), named and
+	// ordered as in the visual editor: Input.label, or numbered per kind in reading
+	// order of the rotated view. An optional 'input' that is absent means nothing was
+	// picked; each action defines what that means (for set_color, the input that
+	// fired the action). The stored value is always the Input.id (the physical
+	// input), never a position or a numbered label: Device.rotation is presentation
+	// only, so rotating the device after saving does not change which physical input
+	// the param targets, while the label the picker shows for it does change (at 180
+	// degrees the top-left key becomes the bottom-right one). Clients translate both
+	// ways with the current rotation: label to id when picking, id to label when
+	// showing a saved value. Whether the id exists on the device is checked when the
+	// action runs, not when the binding is saved (the device may be disconnected).
 	Type ParamSpecType `json:"type" yaml:"type" mapstructure:"type"`
 }
 
@@ -2177,12 +2219,14 @@ type ParamSpecType string
 
 const ParamSpecTypeBoolean ParamSpecType = "boolean"
 const ParamSpecTypeColor ParamSpecType = "color"
+const ParamSpecTypeInput ParamSpecType = "input"
 const ParamSpecTypeString ParamSpecType = "string"
 
 var enumValues_ParamSpecType = []interface{}{
 	"string",
 	"boolean",
 	"color",
+	"input",
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -3108,7 +3152,10 @@ type SetColorActionParams struct {
 
 	// Input to paint. Matches Device.inputs[].id. Absent means the input that fired
 	// the action; if nothing fired it (e.g. a test run from the GUI), the action
-	// fails.
+	// fails. list_actions advertises it as a ParamSpec of type 'input' with
+	// input_filter {rgb: true}, which only offers inputs of the device that fired the
+	// action; when device_id is set, input_id refers to that other device, so clients
+	// should show it as-is instead of resolving it on the binding's device.
 	InputId *string `json:"input_id,omitempty,omitzero" yaml:"input_id,omitempty" mapstructure:"input_id,omitempty"`
 
 	// false (default): paint only. The active profile's colors are untouched,
