@@ -131,7 +131,7 @@
         "color": { "$ref": "#/$defs/Color" },
         "input_id": {
           "type": "string",
-          "description": "Input to paint. Matches Device.inputs[].id. Absent means the input that fired the action; if nothing fired it (e.g. a test run from the GUI), the action fails.",
+          "description": "Input to paint. Matches Device.inputs[].id. Absent means the input that fired the action; if nothing fired it (e.g. a test run from the GUI), the action fails. list_actions advertises it as a ParamSpec of type 'input' with input_filter {rgb: true}, which only offers inputs of the device that fired the action; when device_id is set, input_id refers to that other device, so clients should show it as-is instead of resolving it on the binding's device.",
           "minLength": 1
         },
         "device_id": { "$ref": "#/$defs/DeviceID" },
@@ -378,12 +378,34 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "label", "type", "required"],
+      "if": { "properties": { "type": { "not": { "const": "input" } } } },
+      "then": { "not": { "required": ["input_filter"] } },
       "properties": {
         "name": { "type": "string", "description": "Param key written into Action.params. Unique within the action.", "minLength": 1 },
         "label": { "type": "string", "description": "Human-friendly field label.", "minLength": 1 },
-        "type": { "type": "string", "enum": ["string", "boolean", "color"], "description": "Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker). An optional boolean that is absent means false. placeholder only applies to 'string'." },
+        "type": { "type": "string", "enum": ["string", "boolean", "color", "input"], "description": "Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action. An optional boolean that is absent means false. placeholder only applies to 'string'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected)." },
         "required": { "type": "boolean" },
-        "placeholder": { "type": "string", "description": "Optional placeholder/example shown in the input." }
+        "placeholder": { "type": "string", "description": "Optional placeholder/example shown in the input." },
+        "input_filter": { "$ref": "#/$defs/InputFilter" }
+      }
+    },
+    "InputFilter": {
+      "title": "InputFilter",
+      "description": "Narrows which inputs a ParamSpec of type 'input' lets the user pick. Only valid with type 'input': a ParamSpec of any other type that carries it is rejected. Absent means any input of the device.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "description": "Only inputs of these kinds. Absent means any kind.",
+          "items": { "$ref": "#/$defs/InputKind" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "rgb": {
+          "type": "boolean",
+          "description": "true: only inputs with an LED (Input.rgb). false or absent: no filtering by LED."
+        }
       }
     },
     "PluginID": {

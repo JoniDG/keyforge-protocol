@@ -15,7 +15,13 @@
     "windows": { "path": "bin/spotify.exe" }
   },
   "actions": [
-    { "id": "play_pause", "name": "Play / Pause", "params": [] },
+    {
+      "id": "play_pause",
+      "name": "Play / Pause",
+      "params": [
+        { "name": "volume_encoder", "label": "Volume encoder", "type": "input", "required": false, "input_filter": { "kinds": ["encoder"] } }
+      ]
+    },
     {
       "id": "volume",
       "name": "Volume",

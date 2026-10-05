@@ -21,7 +21,7 @@
         "name": "Set color",
         "params": [
           { "name": "color", "label": "Color", "type": "color", "required": true },
-          { "name": "input_id", "label": "Input", "type": "string", "required": false, "placeholder": "Input that fired the action" },
+          { "name": "input_id", "label": "Input", "type": "input", "required": false, "input_filter": { "rgb": true } },
           { "name": "persist", "label": "Save to profile", "type": "boolean", "required": false }
         ]
       }
