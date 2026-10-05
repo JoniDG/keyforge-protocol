@@ -38,6 +38,13 @@ export type Color = string;
  */
 export type Color1 = string;
 /**
+ * Clockwise rotation, in degrees, applied to the canonical orientation of a device's layout so clients show it the way the user has the device on the desk. Presentation only: bindings and colors stay tied to the physical input (input_id) and do not change when the device is rotated. It is a per-device preference, not a per-profile one: switching profiles does not change it. Set through set_device_rotation and exposed in Device.rotation, where absent means 0.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "DeviceRotation".
+ */
+export type DeviceRotation = 0 | 90 | 180 | 270;
+/**
  * Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -237,14 +244,39 @@ export interface Input {
   id: string;
   kind: InputKind;
   /**
-   * Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients fall back to id.
+   * Fixed name of the input (e.g. 'Enter', 'Play') that clients show as-is in any orientation. When absent, clients name the input by position: they number inputs per kind in reading order of the current view, sorting by each input's top-left corner after applying Device.rotation (y first, then x), so 'Key 1' is always the top-left key as the device sits on the desk. If the device has no complete layout, they number inputs per kind in the order list_devices returns them. Catalogs should not send positional labels like 'Key 1': they would be wrong once the device is rotated.
    */
   label?: string;
+  layout?: InputLayout;
   /**
    * Whether the input has an RGB LED the daemon can drive through set_input_color. Absent means false.
    */
   rgb?: boolean;
   color?: Color1;
+}
+/**
+ * Physical position and size of an input, in key units (1 = one standard key). Fractions are allowed (e.g. x: 5.5 leaves a gap before a column of encoders). Coordinates are in the device's canonical orientation, defined by the daemon's device catalog: the origin is the top-left corner and y grows downwards. This is a coordinate system, not how the user has the device on the desk (that is Device.rotation). The shape is not modeled: clients derive it from Input.kind (key = rectangle, encoder = circle). Clients can draw a device only when every one of its inputs has a layout; otherwise they fall back to a view without positions (e.g. a list). Prior art: the {x, y, w, h} key model of QMK/VIA info.json.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "InputLayout".
+ */
+export interface InputLayout {
+  /**
+   * Horizontal position of the input's top-left corner, in key units.
+   */
+  x: number;
+  /**
+   * Vertical position of the input's top-left corner, in key units. Grows downwards.
+   */
+  y: number;
+  /**
+   * Width in key units. Absent means 1.
+   */
+  w?: number;
+  /**
+   * Height in key units. Absent means 1.
+   */
+  h?: number;
 }
 /**
  * A HID device known to the daemon. Returned by list_devices.
@@ -282,6 +314,7 @@ export interface Device {
    * Inputs (keys/encoders) the daemon knows this device exposes. Empty for unrecognized devices the daemon can't map.
    */
   inputs: Input[];
+  rotation?: DeviceRotation;
 }
 /**
  * Maps a foreground application to the profile that should become active while that app is frontmost. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.

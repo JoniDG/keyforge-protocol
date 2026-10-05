@@ -5,18 +5,25 @@
   "data": {
     "devices": [
       {
-        "id": "VID_1234_PID_5678_ABC123",
-        "vendor_id": "1234",
-        "product_id": "5678",
-        "manufacturer": "Generic",
-        "product": "Macro Keypad 10K2E",
-        "serial_number": "ABC123",
-        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000/USB2.0-CRW@14100000",
+        "id": "VID_6D82_PID_DC83",
+        "vendor_id": "6D82",
+        "product_id": "DC83",
+        "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS01@14100000",
         "inputs": [
-          { "id": "key_0x04", "kind": "key", "label": "Key 1", "rgb": true, "color": "#ff0000" },
-          { "id": "key_0x05", "kind": "key", "label": "Key 2", "rgb": true },
-          { "id": "encoder_0", "kind": "encoder", "label": "Encoder" }
-        ]
+          { "id": "key_0x68", "kind": "key", "rgb": true, "color": "#ff0000", "layout": { "x": 0, "y": 0 } },
+          { "id": "key_0x69", "kind": "key", "rgb": true, "layout": { "x": 1, "y": 0 } },
+          { "id": "key_0x6a", "kind": "key", "rgb": true, "layout": { "x": 2, "y": 0 } },
+          { "id": "key_0x6b", "kind": "key", "rgb": true, "layout": { "x": 3, "y": 0 } },
+          { "id": "key_0x6c", "kind": "key", "rgb": true, "layout": { "x": 4, "y": 0 } },
+          { "id": "key_0x6d", "kind": "key", "rgb": true, "layout": { "x": 0, "y": 1 } },
+          { "id": "key_0x6e", "kind": "key", "rgb": true, "layout": { "x": 1, "y": 1 } },
+          { "id": "key_0x6f", "kind": "key", "rgb": true, "layout": { "x": 2, "y": 1 } },
+          { "id": "key_0x70", "kind": "key", "rgb": true, "layout": { "x": 3, "y": 1 } },
+          { "id": "key_0x71", "kind": "key", "rgb": true, "layout": { "x": 4, "y": 1 } },
+          { "id": "encoder_0", "kind": "encoder", "layout": { "x": 5.5, "y": 0 } },
+          { "id": "encoder_1", "kind": "encoder", "layout": { "x": 5.5, "y": 1 } }
+        ],
+        "rotation": 90
       },
       {
         "id": "VID_1a86_PID_7523",

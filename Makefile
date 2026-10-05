@@ -17,7 +17,11 @@ COMMON_SCHEMA   := $(SCHEMAS_DIR)/common.schema.json
 ENVELOPE_SCHEMA := $(SCHEMAS_DIR)/envelope.schema.json
 METHOD_SCHEMAS  := $(wildcard $(SCHEMAS_DIR)/methods/*.schema.json)
 EVENT_SCHEMAS   := $(wildcard $(SCHEMAS_DIR)/events/*.schema.json)
-ALL_SCHEMAS     := $(COMMON_SCHEMA) $(ENVELOPE_SCHEMA) $(METHOD_SCHEMAS) $(EVENT_SCHEMAS)
+# Methods and events go before common on purpose: when common is processed
+# first, go-jsonschema declares an integer-enum $def (e.g. DeviceRotation) a
+# second time ("DeviceRotation_1") for each $ref to it from another file.
+# String enums and objects are unaffected, and the output is the same otherwise.
+ALL_SCHEMAS     := $(METHOD_SCHEMAS) $(EVENT_SCHEMAS) $(COMMON_SCHEMA) $(ENVELOPE_SCHEMA)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'

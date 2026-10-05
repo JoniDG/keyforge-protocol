@@ -576,6 +576,9 @@ type Device struct {
 	// prefix).
 	ProductId string `json:"product_id" yaml:"product_id" mapstructure:"product_id"`
 
+	// Rotation corresponds to the JSON schema field "rotation".
+	Rotation *DeviceRotation `json:"rotation,omitempty,omitzero" yaml:"rotation,omitempty" mapstructure:"rotation,omitempty"`
+
 	// Serial number string from the HID descriptor. Not all HID devices expose one.
 	SerialNumber *string `json:"serial_number,omitempty,omitzero" yaml:"serial_number,omitempty" mapstructure:"serial_number,omitempty"`
 
@@ -598,6 +601,35 @@ func (j *DeviceID) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s pattern match: must match %s", "", `^VID_[0-9A-Fa-f]{4}_PID_[0-9A-Fa-f]{4}(_.+)?$`)
 	}
 	*j = DeviceID(plain)
+	return nil
+}
+
+type DeviceRotation int
+
+var enumValues_DeviceRotation = []interface{}{
+	0,
+	90,
+	180,
+	270,
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DeviceRotation) UnmarshalJSON(value []byte) error {
+	var v int
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_DeviceRotation {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_DeviceRotation, v)
+	}
+	*j = DeviceRotation(v)
 	return nil
 }
 
@@ -1225,9 +1257,18 @@ type Input struct {
 	// Kind corresponds to the JSON schema field "kind".
 	Kind InputKind `json:"kind" yaml:"kind" mapstructure:"kind"`
 
-	// Human-friendly label for the input (e.g. 'Key 1', 'Encoder'). Optional; clients
-	// fall back to id.
+	// Fixed name of the input (e.g. 'Enter', 'Play') that clients show as-is in any
+	// orientation. When absent, clients name the input by position: they number
+	// inputs per kind in reading order of the current view, sorting by each input's
+	// top-left corner after applying Device.rotation (y first, then x), so 'Key 1' is
+	// always the top-left key as the device sits on the desk. If the device has no
+	// complete layout, they number inputs per kind in the order list_devices returns
+	// them. Catalogs should not send positional labels like 'Key 1': they would be
+	// wrong once the device is rotated.
 	Label *string `json:"label,omitempty,omitzero" yaml:"label,omitempty" mapstructure:"label,omitempty"`
+
+	// Layout corresponds to the JSON schema field "layout".
+	Layout *InputLayout `json:"layout,omitempty,omitzero" yaml:"layout,omitempty" mapstructure:"layout,omitempty"`
 
 	// Whether the input has an RGB LED the daemon can drive through set_input_color.
 	// Absent means false.
@@ -1391,6 +1432,64 @@ func (j *InputKind) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_InputKind, v)
 	}
 	*j = InputKind(v)
+	return nil
+}
+
+// Physical position and size of an input, in key units (1 = one standard key).
+// Fractions are allowed (e.g. x: 5.5 leaves a gap before a column of encoders).
+// Coordinates are in the device's canonical orientation, defined by the daemon's
+// device catalog: the origin is the top-left corner and y grows downwards. This is
+// a coordinate system, not how the user has the device on the desk (that is
+// Device.rotation). The shape is not modeled: clients derive it from Input.kind
+// (key = rectangle, encoder = circle). Clients can draw a device only when every
+// one of its inputs has a layout; otherwise they fall back to a view without
+// positions (e.g. a list). Prior art: the {x, y, w, h} key model of QMK/VIA
+// info.json.
+type InputLayout struct {
+	// Height in key units. Absent means 1.
+	H *float64 `json:"h,omitempty,omitzero" yaml:"h,omitempty" mapstructure:"h,omitempty"`
+
+	// Width in key units. Absent means 1.
+	W *float64 `json:"w,omitempty,omitzero" yaml:"w,omitempty" mapstructure:"w,omitempty"`
+
+	// Horizontal position of the input's top-left corner, in key units.
+	X float64 `json:"x" yaml:"x" mapstructure:"x"`
+
+	// Vertical position of the input's top-left corner, in key units. Grows
+	// downwards.
+	Y float64 `json:"y" yaml:"y" mapstructure:"y"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *InputLayout) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["x"]; raw != nil && !ok {
+		return fmt.Errorf("field x in InputLayout: required")
+	}
+	if _, ok := raw["y"]; raw != nil && !ok {
+		return fmt.Errorf("field y in InputLayout: required")
+	}
+	type Plain InputLayout
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.H != nil && 0 >= *plain.H {
+		return fmt.Errorf("field %s: must be > %v", "h", 0)
+	}
+	if plain.W != nil && 0 >= *plain.W {
+		return fmt.Errorf("field %s: must be > %v", "w", 0)
+	}
+	if 0 > plain.X {
+		return fmt.Errorf("field %s: must be >= %v", "x", 0)
+	}
+	if 0 > plain.Y {
+		return fmt.Errorf("field %s: must be >= %v", "y", 0)
+	}
+	*j = InputLayout(plain)
 	return nil
 }
 
@@ -2984,6 +3083,73 @@ func (j *SetBindingSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetBindingSchemaJson(plain)
+	return nil
+}
+
+// Persists how the user has a device rotated on the desk, so clients draw its
+// layout in that orientation. The rotation is stored per device (by device_id),
+// not per profile: switching profiles does not change it. list_devices exposes it
+// in Device.rotation. Presentation only: bindings and colors stay tied to input_id
+// and are not touched. The daemon rejects unknown device_ids; error codes are
+// defined by the daemon.
+type SetDeviceRotationSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params SetDeviceRotationSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Empty acknowledgement object.
+	Result SetDeviceRotationSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type SetDeviceRotationSchemaJsonParams struct {
+	// DeviceId corresponds to the JSON schema field "device_id".
+	DeviceId DeviceID `json:"device_id" yaml:"device_id" mapstructure:"device_id"`
+
+	// Rotation corresponds to the JSON schema field "rotation".
+	Rotation DeviceRotation `json:"rotation" yaml:"rotation" mapstructure:"rotation"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetDeviceRotationSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["device_id"]; raw != nil && !ok {
+		return fmt.Errorf("field device_id in SetDeviceRotationSchemaJsonParams: required")
+	}
+	if _, ok := raw["rotation"]; raw != nil && !ok {
+		return fmt.Errorf("field rotation in SetDeviceRotationSchemaJsonParams: required")
+	}
+	type Plain SetDeviceRotationSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetDeviceRotationSchemaJsonParams(plain)
+	return nil
+}
+
+// Empty acknowledgement object.
+type SetDeviceRotationSchemaJsonResult map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetDeviceRotationSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in SetDeviceRotationSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in SetDeviceRotationSchemaJson: required")
+	}
+	type Plain SetDeviceRotationSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SetDeviceRotationSchemaJson(plain)
 	return nil
 }
 
