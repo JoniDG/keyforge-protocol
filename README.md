@@ -97,7 +97,7 @@ How the daemon runs an installed plugin and talks to it:
 
 1. **Launch.** The daemon spawns the manifest's `entrypoint` for the current OS and sets the `KEYFORGE_PLUGIN_INFO` environment variable to a JSON `PluginLaunchInfo` (`plugin_id`, `ws_url`, `protocol_version`). An env var is used instead of CLI args so the auth token doesn't show up in the process list. See [`examples/files/plugin_launch_info.json`](examples/files/plugin_launch_info.json).
 2. **Connect.** The plugin opens `ws_url`, which carries a **per-plugin token** distinct from the GUI's, and sends the regular `hello` with `client.name` set to its plugin id. The daemon identifies the plugin by its token; a `hello` whose name doesn't match is answered with `FORBIDDEN` and the connection is closed.
-3. **Receive actions.** When a binding or macro step for `plugin.<plugin_id>.<action_id>` fires, the daemon sends the `action_invoked` event to that plugin's connection only, with an opaque `context` (stable per binding instance, so a plugin can keep per-instance state), the action id, its params and, when the trigger came from hardware, the `InputEvent` that fired it. Delivery is fire-and-forget: the daemon doesn't wait for the plugin.
+3. **Receive actions.** When a binding, a macro step or a toggle step for `plugin.<plugin_id>.<action_id>` fires, the daemon sends the `action_invoked` event to that plugin's connection only, with an opaque `context` (stable per binding instance, so a plugin can keep per-instance state), the action id, its params and, when the trigger came from hardware, the `InputEvent` that fired it. Delivery is fire-and-forget: the daemon doesn't wait for the plugin.
 4. **Permissions.** A plugin connection may only call `hello` and only receives its own `action_invoked` events (no `input` or GUI-facing events). Any other method is answered with error code `FORBIDDEN`.
 5. **Exit.** A plugin must exit when its WebSocket connection closes. That's how the daemon stops plugins on shutdown or uninstall.
 
@@ -126,6 +126,10 @@ A hardware-agnostic way to light up keys, independent of each device's lighting 
 - **From a binding.** The built-in `set_color` action (`SetColorActionParams { color, input_id?, device_id?, persist? }`) paints an LED when a binding fires. Without `input_id` it paints the input that fired the action (`device_id` defaults to that device and is only valid with `input_id`). By default the change is transient: the profile's colors are untouched and come back when a profile becomes active or the device reconnects. With `persist: true` it also writes the color into the active profile, like `set_input_color`. To change several keys at once, use a `macro` with several `set_color` steps.
 
 Lighting effects (breathing, rainbow, ...), batch updates and plugin access to LEDs are out of scope for now; they can be added without breaking this contract.
+
+## Toggle action
+
+The built-in `toggle` action (`ToggleActionParams { on, off }`) alternates between two lists of actions: the first firing runs `on`, the next one `off`, and so on. For example, one key can start recording and turn red, then stop recording and turn green. Each list runs in order like a `macro`. The state lives in the daemon's memory, per binding. It starts at `on` when the daemon starts or the binding is saved, and changing the active profile doesn't reset it. A list only advances the state when all its steps succeed, so a failed `on` is retried on the next press. Plugin steps count as succeeded once they're sent. As in Stream Deck's Multi Action Switch, nothing nests: a step can't be a `macro` or a `toggle`, and a `toggle` can't be a `macro` step.
 
 ## Device layout and rotation
 

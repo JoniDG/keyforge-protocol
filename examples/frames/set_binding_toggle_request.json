@@ -1,0 +1,25 @@
+{
+  "type": "request",
+  "id": "9c4f2a7e-3b1d-4e8a-a6f5-0d7c2e9b1a48",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x05",
+      "trigger": "press",
+      "action": {
+        "type": "toggle",
+        "params": {
+          "on": [
+            { "type": "send_keys", "params": { "keys": "Ctrl+Shift+R" } },
+            { "type": "set_color", "params": { "color": "#ff0000" } }
+          ],
+          "off": [
+            { "type": "send_keys", "params": { "keys": "Ctrl+Shift+R" } },
+            { "type": "set_color", "params": { "color": "#00ff00" } }
+          ]
+        }
+      }
+    }
+  }
+}

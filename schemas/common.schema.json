@@ -55,7 +55,7 @@
         "type": {
           "type": "string",
           "description": "Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'. Plugin ids are reverse-DNS (they contain dots) and action ids never do, so the action id is everything after the last dot.",
-          "examples": ["launch_app", "send_keys", "delay", "macro", "set_color", "http_request", "plugin.dev.jonidg.spotify.play_pause"]
+          "examples": ["launch_app", "send_keys", "delay", "macro", "toggle", "set_color", "http_request", "plugin.dev.jonidg.spotify.play_pause"]
         },
         "params": {
           "type": "object",
@@ -107,7 +107,7 @@
     },
     "MacroActionParams": {
       "title": "MacroActionParams",
-      "description": "Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects nested macros (a step whose type is 'macro').",
+      "description": "Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'.",
       "type": "object",
       "additionalProperties": false,
       "required": ["steps"],
@@ -115,6 +115,27 @@
         "steps": {
           "type": "array",
           "description": "Actions to run in order. Must contain at least one step.",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Action" }
+        }
+      }
+    },
+    "ToggleActionParams": {
+      "title": "ToggleActionParams",
+      "description": "Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["on", "off"],
+      "properties": {
+        "on": {
+          "type": "array",
+          "description": "Actions run on the first firing and every other one after it. Must contain at least one step.",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Action" }
+        },
+        "off": {
+          "type": "array",
+          "description": "Actions run on the second firing and every other one after it. Must contain at least one step.",
           "minItems": 1,
           "items": { "$ref": "#/$defs/Action" }
         }
