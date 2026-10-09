@@ -140,7 +140,7 @@ export interface DelayActionParams {
   ms: number;
 }
 /**
- * Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects nested macros (a step whose type is 'macro').
+ * Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
  * via the `definition` "MacroActionParams".
@@ -152,6 +152,26 @@ export interface MacroActionParams {
    * @minItems 1
    */
   steps: [Action, ...Action[]];
+}
+/**
+ * Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "ToggleActionParams".
+ */
+export interface ToggleActionParams {
+  /**
+   * Actions run on the first firing and every other one after it. Must contain at least one step.
+   *
+   * @minItems 1
+   */
+  on: [Action, ...Action[]];
+  /**
+   * Actions run on the second firing and every other one after it. Must contain at least one step.
+   *
+   * @minItems 1
+   */
+  off: [Action, ...Action[]];
 }
 /**
  * Params for the built-in 'set_color' action: paints the LED of an input. Fails when it runs if the target input is unknown or has no LED (the device may be disconnected when the binding is saved, so the daemon checks it then). device_id is the device of input_id: absent means the device that fired the action, and it is only valid together with input_id (device_id alone is rejected when the binding is saved).

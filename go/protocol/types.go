@@ -80,10 +80,10 @@ type ActionInvokedSchemaJsonData struct {
 	// The plugin action to run.
 	Action ActionInvokedSchemaJsonDataAction `json:"action" yaml:"action" mapstructure:"action"`
 
-	// Opaque id of the binding instance that fired: unique per binding and per macro
-	// step, and stable for as long as that binding exists (also across daemon
-	// restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two
-	// keys. Plugins must not parse it.
+	// Opaque id of the binding instance that fired: unique per binding and per step
+	// of a macro or of each list of a toggle, and stable for as long as that binding
+	// exists (also across daemon restarts). Lets a plugin keep per-instance state,
+	// e.g. a toggle bound to two keys. Plugins must not parse it.
 	Context string `json:"context" yaml:"context" mapstructure:"context"`
 
 	// Hardware event that fired the binding (e.g. lets a plugin tell rotate_cw from
@@ -2150,8 +2150,8 @@ func (j *ListProfilesSchemaJson) UnmarshalJSON(value []byte) error {
 }
 
 // Params for the built-in 'macro' action: runs a sequence of actions in order. The
-// schema allows any Action as a step; the daemon rejects nested macros (a step
-// whose type is 'macro').
+// schema allows any Action as a step; the daemon rejects steps whose type is
+// 'macro' or 'toggle'.
 type MacroActionParams struct {
 	// Actions to run in order. Must contain at least one step.
 	Steps []Action `json:"steps" yaml:"steps" mapstructure:"steps"`
@@ -3334,6 +3334,54 @@ func (j *SetInputColorSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetInputColorSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'toggle' action: alternates between two lists of
+// actions, one per firing. The first firing runs 'on', the next one 'off', then
+// 'on' again, and so on. Each list runs in order like a macro, stopping at the
+// first failure. The state is kept in memory per binding: it starts at 'on' when
+// the daemon starts and when the binding is saved (set_binding), and it is not
+// reset when the active profile changes. The state only advances when every step
+// of the list succeeded, so a failed 'on' is retried on the next firing; a plugin
+// step counts as succeeded once action_invoked is sent, since delivery is
+// fire-and-forget. The schema allows any Action as a step; the daemon rejects
+// steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step
+// either.
+type ToggleActionParams struct {
+	// Actions run on the second firing and every other one after it. Must contain at
+	// least one step.
+	Off []Action `json:"off" yaml:"off" mapstructure:"off"`
+
+	// Actions run on the first firing and every other one after it. Must contain at
+	// least one step.
+	On []Action `json:"on" yaml:"on" mapstructure:"on"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ToggleActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["off"]; raw != nil && !ok {
+		return fmt.Errorf("field off in ToggleActionParams: required")
+	}
+	if _, ok := raw["on"]; raw != nil && !ok {
+		return fmt.Errorf("field on in ToggleActionParams: required")
+	}
+	type Plain ToggleActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Off != nil && len(plain.Off) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "off", 1)
+	}
+	if plain.On != nil && len(plain.On) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "on", 1)
+	}
+	*j = ToggleActionParams(plain)
 	return nil
 }
 

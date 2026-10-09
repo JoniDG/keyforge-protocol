@@ -14,7 +14,7 @@
       "properties": {
         "context": {
           "type": "string",
-          "description": "Opaque id of the binding instance that fired: unique per binding and per macro step, and stable for as long as that binding exists (also across daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two keys. Plugins must not parse it.",
+          "description": "Opaque id of the binding instance that fired: unique per binding and per step of a macro or of each list of a toggle, and stable for as long as that binding exists (also across daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two keys. Plugins must not parse it.",
           "minLength": 1
         },
         "action": {
