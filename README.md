@@ -2,7 +2,7 @@
 
 > Wire protocol contracts for the [KeyForge](https://github.com/JoniDG/keyforge) ecosystem.
 
-This repository defines the **JSON Schema** contracts shared between the KeyForge daemon, GUI and plugins. All messages travel as JSON over a local WebSocket. Strongly-typed Go and TypeScript bindings are generated automatically from the schemas.
+This repository defines the **JSON Schema** contracts shared between the KeyForge daemon, GUI and plugins. All messages travel as JSON over a local WebSocket. Strongly-typed Go, TypeScript and Python bindings are generated automatically from the schemas.
 
 ## Status
 
@@ -51,6 +51,12 @@ ts/                      # TS npm package (checked in; consumed via `npm install
   tsconfig.json
   src/                   # generated TS source (auto-generated, checked in)
   dist/                  # tsc output: .d.ts + .js (git-ignored)
+py/                      # Python package (checked in; consumed via `pip`/`uv`)
+  pyproject.toml         # name: jdg-keyforge-protocol, import: keyforge_protocol
+  src/keyforge_protocol/ # generated TypedDicts (auto-generated, checked in)
+  tests/                 # contract checks run under mypy --strict
+scripts/
+  py_postprocess.py      # turns datamodel-codegen output into the Python package
 ```
 
 ## Quickstart
@@ -59,15 +65,16 @@ ts/                      # TS npm package (checked in; consumed via `npm install
 # Install generators (one-time)
 go install github.com/atombender/go-jsonschema@latest
 npm install -g json-schema-to-typescript ajv-cli ajv-formats
+# plus uv (https://docs.astral.sh/uv/), which fetches the Python generator and interpreters on demand
 
 # Validate the example messages against their schemas
 make validate
 
-# Generate Go and TS types from schemas
+# Generate Go, TS and Python types from schemas
 make generate
 ```
 
-Generated types land in `go/protocol/types.go` and `ts/src/*.ts` — both checked in so downstream consumers can pull them without running the generators locally.
+Generated types land in `go/protocol/types.go`, `ts/src/*.ts` and `py/src/keyforge_protocol/` — all checked in so downstream consumers can pull them without running the generators locally.
 
 > **Note:** `make` automatically prepends `$(go env GOPATH)/bin` to `PATH`, so `go-jsonschema` is found even if you have not added `~/go/bin` to your shell `PATH`.
 
@@ -168,7 +175,7 @@ make generate-go             # writes go/protocol/types.go
 (cd go && go build ./...)    # sanity-check the module compiles
 ```
 
-CI runs both steps and fails the build if `git diff --exit-code go/` is dirty — i.e. someone changed a schema without committing the regenerated types.
+CI runs both steps and fails the build if regenerating leaves `go/` different from what is committed (modified or new files) — i.e. someone changed a schema without committing the regenerated types.
 
 ## Consuming from TypeScript
 
@@ -208,7 +215,31 @@ make generate-ts             # writes ts/src/*
 make build-ts                # tsc → ts/dist/ (.d.ts + .js)
 ```
 
-CI runs both and fails the build if `git diff --exit-code ts/src/` is dirty.
+CI runs both and fails the build if regenerating leaves `ts/src/` different from what is committed.
+
+## Consuming from Python
+
+The generated Python types are published to PyPI as [`jdg-keyforge-protocol`](./py) (import name `keyforge_protocol`). They are `TypedDict`s and type aliases only, with no runtime dependencies, and require Python 3.15+.
+
+```bash
+uv add jdg-keyforge-protocol
+```
+
+```python
+from keyforge_protocol import ActionInvokedData, HelloParams, PluginLaunchInfo, PluginManifest
+```
+
+The package root re-exports everything from `common` and `envelope`, and for each method `Method<Name>`, `<Name>Params` and `<Name>Result` (for each event `Event<Name>` and `<Name>Data`). Open objects such as `Action.params` are typed as `JsonObject`, never `Any`. See [`py/README.md`](./py/README.md) for the naming rules.
+
+Releases are tagged `py/vX.Y.Z`, following the same versioning as the Go and TS packages.
+
+```bash
+make generate-py             # writes py/src/keyforge_protocol/
+make check-py                # mypy --strict + contract tests
+make build-py                # sdist + wheel → py/dist/
+```
+
+CI runs all three and fails the build if the regenerated `py/src/` differs from what is committed.
 
 ## Versioning
 

@@ -1,4 +1,4 @@
-.PHONY: help generate generate-go generate-ts generate-ts-barrel build-ts validate validate-frames validate-methods validate-events validate-files clean check-tools
+.PHONY: help generate generate-go generate-ts generate-ts-barrel generate-py check-py build-py build-ts validate validate-frames validate-methods validate-events validate-files clean check-tools
 
 SCHEMAS_DIR := schemas
 EXAMPLES_DIR := examples
@@ -6,6 +6,14 @@ GO_OUT      := go/protocol
 TS_OUT      := ts/src
 TS_METHODS_OUT := $(TS_OUT)/methods
 TS_EVENTS_OUT  := $(TS_OUT)/events
+PY_OUT      := py/src/keyforge_protocol
+
+# datamodel-codegen does not run on Python 3.15 yet (it rejects its own runtime
+# version), so the generator runs on 3.14 and emits 3.14 syntax. The package
+# itself targets 3.15: py_postprocess.py moves TypedDict to `typing`, which has
+# PEP 728 `closed=` only since 3.15.
+PY_GEN_PYTHON := 3.14
+PY_PYTHON     := 3.15
 
 # Go-installed binaries (go-jsonschema) live in $GOPATH/bin which is not always
 # on the user's PATH. Prepend it so make recipes always find them.
@@ -30,8 +38,9 @@ check-tools: ## Verify required generators are installed
 	@command -v go-jsonschema >/dev/null 2>&1 || { echo "ERROR: go-jsonschema not found. Run: go install github.com/atombender/go-jsonschema@latest"; exit 1; }
 	@command -v json2ts >/dev/null 2>&1 || { echo "ERROR: json-schema-to-typescript not found. Run: npm install -g json-schema-to-typescript"; exit 1; }
 	@command -v ajv >/dev/null 2>&1 || { echo "ERROR: ajv-cli not found. Run: npm install -g ajv-cli"; exit 1; }
+	@command -v uv >/dev/null 2>&1 || { echo "ERROR: uv not found. See https://docs.astral.sh/uv/getting-started/installation/"; exit 1; }
 
-generate: check-tools generate-go generate-ts ## Generate Go and TS types from schemas
+generate: check-tools generate-go generate-ts generate-py ## Generate Go, TS and Python types from schemas
 
 generate-go: ## Generate Go types into the go/ submodule
 	@mkdir -p $(GO_OUT)
@@ -77,6 +86,23 @@ generate-ts-barrel:
 		done; \
 	} > $(TS_OUT)/index.ts
 
+generate-py: ## Generate Python types into the py/ package
+	@rm -rf $(PY_OUT)
+	@uvx --python $(PY_GEN_PYTHON) --from datamodel-code-generator datamodel-codegen \
+		--input $(SCHEMAS_DIR) --input-file-type jsonschema --output $(PY_OUT) \
+		--output-model-type typing.TypedDict --enum-field-as-literal all \
+		--target-python-version $(PY_GEN_PYTHON) --formatters builtin \
+		--use-schema-description --use-field-description --disable-timestamp
+	@uv run --no-project --python $(PY_PYTHON) python scripts/py_postprocess.py $(PY_OUT) $(SCHEMAS_DIR)
+	@echo "✓ Generated Python types in $(PY_OUT)/"
+
+check-py: ## Type-check the Python package with mypy --strict and run its contract tests
+	cd py && uvx --python $(PY_PYTHON) mypy
+	cd py && PYTHONPATH=src uv run --no-project --python $(PY_PYTHON) python -m unittest discover -s tests
+
+build-py: ## Build the Python sdist + wheel into py/dist/
+	cd py && uv build
+
 build-ts: ## Install + build the TS package (emits .d.ts and .js into ts/dist/)
 	cd ts && npm install --no-audit --no-fund && npm run build
 
@@ -113,6 +139,6 @@ validate-files: ## Validate on-disk file examples in examples/files/ against the
 		ajv validate -s $$tmp/$$def.json -d $$ex --spec=draft2020 -r $(COMMON_SCHEMA) || exit 1; \
 	done
 
-clean: ## Remove generated TS package build output
-	rm -rf ts/dist
-	@echo "✓ Cleaned ts/dist/"
+clean: ## Remove TS and Python package build output
+	rm -rf ts/dist py/dist
+	@echo "✓ Cleaned ts/dist/ and py/dist/"

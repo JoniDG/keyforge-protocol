@@ -2,6 +2,9 @@
 dist/
 ts/dist/
 ts/node_modules/
+__pycache__/
+.mypy_cache/
+.venv/
 
 # Claude personal (no compartir)
 .claude/settings.local.json
