@@ -3,11 +3,11 @@
 ## Objetivo
 Definir el **contrato** que comparten todos los componentes de KeyForge (daemon, GUI, plugins): mensajes JSON sobre WebSocket descritos como **JSON Schema**.
 
-Este repo es la fuente única de verdad de los tipos. Los demás repos consumen los **tipos generados** (Go y TS) desde acá.
+Este repo es la fuente única de verdad de los tipos. Los demás repos consumen los **tipos generados** (Go, TS y Python) desde acá.
 
 ## Scope
 - Definir schemas JSON de los mensajes y tipos compartidos.
-- Generar tipos Go y TypeScript automáticamente vía `make generate`.
+- Generar tipos Go, TypeScript y Python automáticamente vía `make generate`.
 - Proveer ejemplos validables.
 - **NO contiene lógica de runtime, validación ni transporte** — solo el contrato.
 
@@ -33,7 +33,13 @@ ts/                            → npm package publicado (CHECKED IN, no gitigno
   tsconfig.json
   src/                         → tipos TS generados (auto, checked in)
   dist/                        → tsc output (.d.ts + .js, gitignored)
-Makefile                       → comandos: generate, build-ts, validate (+ validate-files), clean
+py/                            → paquete PyPI publicado (CHECKED IN, no gitignored)
+  pyproject.toml               → name: jdg-keyforge-protocol (import keyforge_protocol), backend uv_build, config de mypy
+  src/keyforge_protocol/       → TypedDicts generados (auto, checked in) + barrel __init__.py + _json.py + py.typed
+  tests/test_contract.py       → literales tipados == ejemplos de examples/ (mypy --strict + unittest)
+  dist/                        → sdist + wheel de `uv build` (gitignored)
+scripts/py_postprocess.py      → post-proceso del output de datamodel-codegen (ver "Tipos Python")
+Makefile                       → comandos: generate (+ generate-py), build-ts, check-py, build-py, validate (+ validate-files), clean
 ```
 
 ## Envelope (wire protocol — DECIDIDO 2026-05-04)
@@ -185,35 +191,55 @@ La distribución física viaja en el contrato para que la GUI pueda dibujar cual
 - **`set_device_rotation {device_id, rotation} → {}`** (ack vacío, como `set_input_color`): persiste por `device_id` y `list_devices` la expone. Rechaza `device_id` desconocidos; los códigos de error los define `keyforge-core`.
 - **Gotcha del generador Go:** si `common.schema.json` se procesa primero, `go-jsonschema` duplica un `$def` enum **entero** referenciado desde otro archivo (`DeviceRotation_1`). Por eso el `Makefile` le pasa métodos y eventos antes que `common`. Además, un `$ref` con `description` al lado hace que `json2ts` emita un alias duplicado (`Color1`): para `$def`s compartidos, la descripción va en el `$def`.
 
+## Tipos Python (DECIDIDO 2026-10-10)
+
+Paquete PyPI `jdg-keyforge-protocol` (import `keyforge_protocol`) para el SDK Python. Mismo modelo que `ts/`: checked in, solo tipos, versión alineada con Go/TS y tag `py/vX.Y.Z`. Arrancó en **0.16.1** (el contrato vigente) sin bumpear Go/TS, porque para ellos no cambiaba nada.
+
+- **Generador:** `datamodel-codegen --output-model-type typing.TypedDict` (no pydantic): cero dependencias de runtime. Pydantic trae una parte compilada distinta por SO y rompería a los plugins Python, que vendorean sus dependencias y tienen que andar en los 3 SO. Se procesa `schemas/` entero de una: los `$ref` entre archivos salen como imports (`from .. import common_schema`), no como tipos duplicados.
+- **Python 3.15** (`requires-python >=3.15`), tooling con **`uv`**. `TypedDict` sale con `closed=True` (PEP 728 = `additionalProperties: false`), que está en `typing` recién desde 3.15.
+- **`scripts/py_postprocess.py`** (stdlib) termina el paquete después del generador: pasa `TypedDict` de `typing_extensions` a `typing`, cambia `dict[str, Any]` por `JsonObject`, borra el `CommonTypes = Any` que sale de la raíz de `common`, y escribe `_json.py` (`JsonValue`/`JsonObject`), `py.typed` y el barrel. **Si queda algún `Any` en el AST, `make generate-py` falla** (regla de "prohibido `any`").
+- **Barrel:** re-exporta todo `common` y `envelope`; por método `Method<Pascal>` + `<Pascal>Params`/`<Pascal>Result`, por evento `Event<Pascal>` + `<Pascal>Data`. Los `$defs` locales de un método mantienen su nombre (`PeerInfo`, `ActionDescriptor`); los demás objetos anidados llevan el prefijo (`ActionInvokedAction`). Si dos exports chocan, el script falla en vez de pisar uno. Los módulos internos se llaman `<nombre>_schema.py` (así los nombra el generador); la API pública es el barrel.
+- **Objetos vacíos** (`{}` con `additionalProperties: false`, ej. `list_devices.params`, `set_binding.result`) salen como `JsonObject` y no como un TypedDict vacío: el generador no emite clases vacías. Es más laxo que el schema, pero nadie arma esos objetos con contenido.
+- **Gotchas del generador:**
+  - `datamodel-codegen` **no corre sobre 3.15** (rechaza su propia versión de runtime: `'3.15' is not a valid PythonVersion`). Corre con `uvx --python 3.14` y `--target-python-version 3.14`; la sintaxis que emite es la misma. Cuando sume 3.15, pasar `PY_GEN_PYTHON` del `Makefile` a 3.15.
+  - Con `--formatters builtin` no hace falta black/isort (el default actual los usa y va a cambiar).
+  - Igual que `go-jsonschema@latest`, se usa la última versión del generador: un release nuevo puede cambiar el output y hacer fallar el drift check de CI. Es la señal para regenerar y commitear.
+- **El owner sabe poco Python:** al tocar `py/` o el script, explicar en términos de TS/Go y no dar nada por sabido. Equivalencias: `TypedDict` ≈ `interface` de TS (solo tipos, en runtime es un `dict` común y no valida nada); `mypy` ≈ `tsc --noEmit`; `uv` ≈ `npm` + `nvm` y `uvx` ≈ `npx`; `pyproject.toml` ≈ `package.json`; PyPI ≈ npm registry; `py.typed` = marca que le dice a mypy que el paquete trae tipos. Si CI falla en Python, casi siempre se arregla con `make generate-py` + commitear `py/src/`; si el error viene del script, se toca `scripts/py_postprocess.py`, nunca `py/src/`.
+- **CI:** `make generate` + chequeo de drift (con `git status --porcelain`, que también ve archivos nuevos) + `make check-py` (`mypy --strict` sobre el paquete y el test de contrato, más el test con `unittest`) + `make build-py`.
+
 ## Comandos
 
 ```bash
-make generate    # genera tipos Go (go/protocol/) y TS (ts/src/) desde schemas/
+make generate    # genera tipos Go (go/protocol/), TS (ts/src/) y Python (py/src/) desde schemas/
 make build-ts    # cd ts && npm install && tsc → ts/dist/ (.d.ts + .js)
+make check-py    # mypy --strict + test de contrato del paquete Python
+make build-py    # uv build → py/dist/ (sdist + wheel)
 make validate    # valida los archivos en examples/ contra sus schemas (incluye validate-files:
                  # examples/files/<snake>.json contra common#/$defs/<Pascal>)
-make clean       # borra ts/dist/
+make clean       # borra ts/dist/ y py/dist/
 ```
 
 **Herramientas requeridas (instalar bajo demanda):**
 ```bash
 go install github.com/atombender/go-jsonschema@latest
 npm install -g json-schema-to-typescript ajv-cli
+# uv: https://docs.astral.sh/uv/ (instala en ~/.local/bin). Baja solo datamodel-codegen, mypy y los Python 3.14/3.15.
 ```
 
 ## Para Claude — cómo ayudarme acá
 
-- **Cuando cree o modifique un schema:** correr `make generate` y verificar que `make validate` pasa. Recordá commitear el diff resultante en `go/protocol/` **y** `ts/src/` — si no, el drift check de CI falla.
+- **Cuando cree o modifique un schema:** correr `make generate` y verificar que `make validate` pasa. Recordá commitear el diff resultante en `go/protocol/`, `ts/src/` **y** `py/src/` — si no, el drift check de CI falla.
 - **Cuando agregue un mensaje nuevo:** crear también un `examples/<nombre>.json` que sirva de smoke test.
 - **Cuando agregues/cambies un método o evento:** correr también `make build-ts` para verificar que el barrel auto-generado (`ts/src/index.ts`) sigue compilando con el nuevo top-level `Method*`/`Event*`.
-- **Nunca** modificar archivos en `ts/src/` ni en `go/protocol/` a mano — son auto-generados (la única excepción son los hand-maintained `ts/package.json`, `ts/tsconfig.json`, `ts/README.md`, `ts/LICENSE`).
+- **Nunca** modificar archivos en `ts/src/`, `go/protocol/` ni `py/src/` a mano — son auto-generados (las únicas excepciones son los hand-maintained `ts/package.json`, `ts/tsconfig.json`, `ts/README.md`, `ts/LICENSE`, `py/pyproject.toml`, `py/README.md`, `py/LICENSE` y `py/tests/`). Un cambio en el output de Python va en `scripts/py_postprocess.py`.
 - **Cambios breaking** en un schema: bumpear el `$id` a una versión nueva, no romper la actual sin avisar.
-- **Flujo de cierre tras el merge (orden estricto).** Este repo publica a npm, así que el cierre de una unidad de trabajo tiene un paso extra que la regla cross-repo de `KEYFORGE-PLAN.md` no contempla. Cuando el owner confirme que el PR fue mergeado:
+- **Al bumpear versión:** subir juntas `ts/package.json` (+ lock) y `py/pyproject.toml`.
+- **Flujo de cierre tras el merge (orden estricto).** Este repo publica a npm y a PyPI, así que el cierre de una unidad de trabajo tiene un paso extra que la regla cross-repo de `KEYFORGE-PLAN.md` no contempla. Cuando el owner confirme que el PR fue mergeado:
   1. Limpieza post-merge de la rama (`git checkout main && git pull --prune` + `git branch -d/-D <rama>`).
-  2. Crear y pushear los tags anotados `go/vX.Y.Z` y `ts/vX.Y.Z` sobre el commit de merge.
-  3. **Esperar a que el owner publique la nueva versión en npm** (`npm publish` lo corre él — el login es interactivo). El registry no está autenticado en esta sesión; ofrecer un `--dry-run` para verificar el tarball, pero **no** dar por cerrada la unidad hasta que el owner confirme el publish.
-  4. **Recién después del publish confirmado**, actualizar `KEYFORGE-PLAN.md` (fila de `keyforge-protocol`, checkboxes de la fase, Work log con fecha, cabecera). Actualizar el plan antes del publish corrompe el estado: deja registrado un `@jdg-keyforge/protocol X.Y.Z` que todavía no existe en el registry y que los repos consumidores no pueden instalar.
-  Si una versión no necesita publish a npm (cambio que no toca el package TS), saltear el paso 3 y decirlo explícitamente.
+  2. Crear y pushear los tags anotados `go/vX.Y.Z`, `ts/vX.Y.Z` y `py/vX.Y.Z` sobre el commit de merge.
+  3. **Esperar a que el owner publique la nueva versión en npm y en PyPI** (lo corre él — npm: `cd ts && npm ci && npm publish`, el login es interactivo; PyPI: `cd py && uv build && uv publish` con su token). Ningún registry está autenticado en esta sesión; ofrecer `npm pack --dry-run` / `uv build` para verificar los paquetes, pero **no** dar por cerrada la unidad hasta que el owner confirme los publish.
+  4. **Recién después del publish confirmado**, actualizar `KEYFORGE-PLAN.md` (fila de `keyforge-protocol`, checkboxes de la fase, Work log con fecha, cabecera). Actualizar el plan antes del publish corrompe el estado: deja registrado un `@jdg-keyforge/protocol X.Y.Z` (o `jdg-keyforge-protocol`) que todavía no existe en el registry y que los repos consumidores no pueden instalar.
+  Si una versión no necesita publish a npm o a PyPI (cambio que no toca ese paquete), saltear esa parte del paso 3 y decirlo explícitamente.
 
 ## Reglas duras
 
@@ -221,7 +247,7 @@ npm install -g json-schema-to-typescript ajv-cli
   - LICENSE / copyright / contacto público: **Jonathan Daniel Gomez** / `jonathan.d.gomez98@gmail.com`
   - Commits / GitHub: **JoniDG** / `jonathan.d.gomez98+github@gmail.com`
 - 🚨 **Antes de cada commit y push:** verificar `git config user.name` = `JoniDG` y `git config user.email` = `jonathan.d.gomez98+github@gmail.com`.
-- ❌ **NO commitees** archivos en `ts/dist/` ni `ts/node_modules/` — están en `.gitignore`.
+- ❌ **NO commitees** archivos en `ts/dist/`, `ts/node_modules/`, `py/dist/` ni cachés de Python — están en `.gitignore`.
 - ❌ **NO uses** `additionalProperties: true` en schemas — debilita el contrato.
 - ✅ Cada cambio de schema requiere ejemplo en `examples/`.
 
