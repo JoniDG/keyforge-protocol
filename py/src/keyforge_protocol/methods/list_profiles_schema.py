@@ -10,7 +10,7 @@ from .._json import JsonObject
 class Result(TypedDict, closed=True):
     profiles: list[common_schema.Profile]
     """
-    All profiles known to the daemon.
+    All profiles known to the daemon, in creation order: create_profile, duplicate_profile and import_profile append at the end. next_profile and previous_profile follow this order.
     """
     active_profile_id: str
     """

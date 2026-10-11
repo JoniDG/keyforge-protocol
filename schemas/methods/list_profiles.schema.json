@@ -20,7 +20,7 @@
       "properties": {
         "profiles": {
           "type": "array",
-          "description": "All profiles known to the daemon.",
+          "description": "All profiles known to the daemon, in creation order: create_profile, duplicate_profile and import_profile append at the end. next_profile and previous_profile follow this order.",
           "items": { "$ref": "../common.schema.json#/$defs/Profile" }
         },
         "active_profile_id": {

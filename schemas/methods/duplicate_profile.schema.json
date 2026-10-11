@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://keyforge.dev/schemas/v1/methods/duplicate_profile.schema.json",
   "title": "Method: duplicate_profile",
-  "description": "Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings. Does not change the active profile.",
+  "description": "Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings as-is: a switch_profile action keeps its target, so one that targets the source profile still targets the source, not the copy. Does not change the active profile.",
   "type": "object",
   "additionalProperties": false,
   "required": ["params", "result"],

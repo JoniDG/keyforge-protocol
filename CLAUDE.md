@@ -180,6 +180,17 @@ Ningún método deja reglas de auto-switch apuntando a un perfil inexistente. No
 - `delete_profile` borra también las reglas de auto-switch cuyo `profile_id` es el perfil borrado.
 - `set_auto_switch` rechaza el request entero con `PROFILE_NOT_FOUND` si alguna regla apunta a un perfil que no existe; no persiste nada. Excepción a "el schema no nombra códigos de error": `PROFILE_NOT_FOUND` ya lo emite `keyforge-core` y lo mapea `keyforge-desktop`, así que nombrarlo solo documenta un código que ya es parte del contrato.
 
+## Acciones de perfil / páginas (DECIDIDO 2026-10-11)
+
+"Páginas" estilo Stream Deck sobre los perfiles existentes: un perfil ya es un set completo de bindings + colores, solo faltaba cambiarlo desde una tecla.
+
+- **Tres built-ins** (copia de Go to Page / Next Page / Previous Page de Stream Deck): `switch_profile` con `$def SwitchProfileActionParams {profile_id}`, y `next_profile` / `previous_profile` sin params (sin `$def`). Se descartó una sola acción con modo porque necesitaba un `ParamSpec` de tipo select.
+- **Orden y extremos:** el de `list_profiles`, que ahora queda fijado en el contrato como orden de creación (`create`/`duplicate`/`import` agregan al final), **dando la vuelta**. Con un solo perfil no hacen nada. Reordenar perfiles queda para después (aditivo).
+- **`ParamSpec.type`** suma `profile`: un selector que muestra los perfiles por nombre y guarda el `Profile.id` (los ids los genera el server, no se tipean). Mismo costo de compatibilidad que `input`: rompe a un consumidor Go viejo; se acepta porque core y desktop salen juntos.
+- **Nunca referencias a perfiles inexistentes** (decisión del owner, mismo criterio que las reglas de auto-switch): `set_binding` rechaza un `profile_id` desconocido con `PROFILE_NOT_FOUND` (también dentro de pasos de macro/toggle). `delete_profile` limpia las referencias: quita el paso de la macro o del lado del toggle; borra el binding si la acción directa es ese `switch_profile` o si una lista queda vacía. `import_profile` aplica la misma limpieza (los ids de otra instalación no significan nada acá); `next_profile`/`previous_profile` sobreviven. `duplicate_profile` copia tal cual (los destinos siguen existiendo). Un `switch_profile` que apunta a su propio perfil, al duplicarlo (o re-importarlo en la misma instalación), sigue apuntando al original y no a la copia. La garantía es solo de `switch_profile`: un param `profile` de un plugin no se limpia y el plugin tiene que tolerar ids que ya no existen.
+- **Auto-switch por flanco, no por nivel** (decisión del owner): una regla se aplica solo cuando cambia la app en foco (y una vez al arrancar el daemon), no cada tick del poll. Un cambio manual (tecla o `set_active_profile` desde la GUI) se mantiene hasta el próximo cambio de app. Antes el poll de core forzaba el perfil de la regla cada 200 ms y pisaba cualquier cambio manual. Cambio solo de descripción de `AutoSwitchRule`.
+- `active_profile_changed` también se emite cuando el cambio lo hace una de estas acciones.
+
 ## Layout de dispositivos y rotación (DECIDIDO 2026-10-04)
 
 La distribución física viaja en el contrato para que la GUI pueda dibujar cualquier dispositivo, no solo el keypad de referencia. El catálogo de `keyforge-hid` completa el layout y `keyforge-core` persiste la rotación.

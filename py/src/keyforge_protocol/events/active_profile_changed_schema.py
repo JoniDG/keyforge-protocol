@@ -13,7 +13,7 @@ class Data(TypedDict, closed=True):
 
 class EventActiveProfileChanged(TypedDict, closed=True):
     """
-    Pushed by the daemon whenever the active profile changes on the server's own initiative (today: auto-switch by foreground app). Lets clients stay in sync without polling. Not emitted in response to a client's set_active_profile request, which already returns the new id.
+    Pushed by the daemon whenever the active profile changes on the server's own initiative (auto-switch by foreground app, or a switch_profile, next_profile or previous_profile action). Lets clients stay in sync without polling. Not emitted in response to a client's set_active_profile request, which already returns the new id.
     """
 
     data: Data

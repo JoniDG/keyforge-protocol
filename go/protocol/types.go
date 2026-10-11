@@ -197,9 +197,10 @@ func (j *Action) UnmarshalJSON(value []byte) error {
 }
 
 // Pushed by the daemon whenever the active profile changes on the server's own
-// initiative (today: auto-switch by foreground app). Lets clients stay in sync
-// without polling. Not emitted in response to a client's set_active_profile
-// request, which already returns the new id.
+// initiative (auto-switch by foreground app, or a switch_profile, next_profile or
+// previous_profile action). Lets clients stay in sync without polling. Not emitted
+// in response to a client's set_active_profile request, which already returns the
+// new id.
 type ActiveProfileChangedSchemaJson struct {
 	// Data corresponds to the JSON schema field "data".
 	Data ActiveProfileChangedSchemaJsonData `json:"data" yaml:"data" mapstructure:"data"`
@@ -249,16 +250,20 @@ func (j *ActiveProfileChangedSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
-// Maps a foreground application to the profile that should become active while
-// that app is frontmost. When the frontmost app matches no rule, the active
-// profile is left unchanged (sticky behavior); there is no fallback profile.
+// Maps a foreground application to the profile that becomes active when that app
+// becomes frontmost. The daemon applies a rule only when the frontmost app changes
+// (and once at startup for the app frontmost then), not continuously while the app
+// stays in front: a manual switch (set_active_profile, or a switch_profile,
+// next_profile or previous_profile action) holds until the frontmost app changes
+// again. When the frontmost app matches no rule, the active profile is left
+// unchanged (sticky behavior); there is no fallback profile.
 type AutoSwitchRule struct {
 	// OS-native application identifier: bundle id on macOS, executable name on
 	// Linux/Windows. Opaque string, not portable across OSes; the daemon matches it
 	// verbatim against the frontmost app.
 	App string `json:"app" yaml:"app" mapstructure:"app"`
 
-	// Identifier of the profile to activate when this app is frontmost. Must
+	// Identifier of the profile to activate when this app becomes frontmost. Must
 	// reference an existing profile: set_auto_switch rejects unknown ids with
 	// PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted
 	// profile.
@@ -469,7 +474,10 @@ func (j *DelayActionParams) UnmarshalJSON(value []byte) error {
 // the active profile reassigns the active one, so the resulting active profile id
 // is always returned. Auto-switch rules whose profile_id points to the deleted
 // profile are deleted with it, so the stored rule set never references a missing
-// profile.
+// profile. Likewise, every switch_profile action in the remaining profiles that
+// targets the deleted profile is removed: a macro or toggle step is dropped from
+// its list, and a binding is deleted when its action is such a switch_profile or
+// when dropping steps leaves its macro steps, or either side of its toggle, empty.
 type DeleteProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params DeleteProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -673,8 +681,9 @@ func (j *Device) UnmarshalJSON(value []byte) error {
 }
 
 // Creates a copy of an existing profile under a new name. The server generates a
-// new id and copies the source profile's bindings. Does not change the active
-// profile.
+// new id and copies the source profile's bindings as-is: a switch_profile action
+// keeps its target, so one that targets the source profile still targets the
+// source, not the copy. Does not change the active profile.
 type DuplicateProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params DuplicateProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -1164,8 +1173,11 @@ func (j *HelloSchemaJson) UnmarshalJSON(value []byte) error {
 
 // Reads an ExportedProfile document from 'path' on the daemon host's filesystem,
 // validates it, and creates a new profile from it. The server generates a fresh
-// id; any id in the file is ignored. Does not change the active profile. Returns
-// the created profile.
+// id; any id in the file is ignored. Profile ids from another installation are
+// meaningless here, so switch_profile actions in the file whose profile_id matches
+// no existing profile are removed the same way delete_profile removes them
+// (next_profile and previous_profile are kept). Does not change the active
+// profile. Returns the created profile.
 type ImportProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params ImportProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -2100,7 +2112,9 @@ type ListProfilesSchemaJsonResult struct {
 	// profiles in the array.
 	ActiveProfileId string `json:"active_profile_id" yaml:"active_profile_id" mapstructure:"active_profile_id"`
 
-	// All profiles known to the daemon.
+	// All profiles known to the daemon, in creation order: create_profile,
+	// duplicate_profile and import_profile append at the end. next_profile and
+	// previous_profile follow this order.
 	Profiles []Profile `json:"profiles" yaml:"profiles" mapstructure:"profiles"`
 }
 
@@ -2193,7 +2207,7 @@ type ParamSpec struct {
 	// of the picker's 'nothing picked' option in an optional param, describing what
 	// the action does when no input is picked (e.g. set_color: 'This key (the one
 	// that fired)'); a required 'input' param has no such option, so clients ignore
-	// it. Does not apply to 'boolean' or 'color'.
+	// it. Does not apply to 'boolean', 'color' or 'profile'.
 	Placeholder *string `json:"placeholder,omitempty,omitzero" yaml:"placeholder,omitempty" mapstructure:"placeholder,omitempty"`
 
 	// Required corresponds to the JSON schema field "required".
@@ -2202,21 +2216,26 @@ type ParamSpec struct {
 	// Param value type, which sets the JSON type written into Action.params: 'string'
 	// a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a
 	// color picker), 'input' a string holding the Input.id of an input on the same
-	// device as the binding that fires the action. An optional boolean that is absent
-	// means false. placeholder only applies to 'string' and 'input'. 'input' is
-	// rendered as a picker listing that device's inputs (narrowed by input_filter),
-	// named and ordered as in the visual editor: Input.label, or numbered per kind in
-	// reading order of the rotated view. An optional 'input' that is absent means
-	// nothing was picked; each action defines what that means (for set_color, the
-	// input that fired the action). The stored value is always the Input.id (the
-	// physical input), never a position or a numbered label: Device.rotation is
-	// presentation only, so rotating the device after saving does not change which
-	// physical input the param targets, while the label the picker shows for it does
-	// change (at 180 degrees the top-left key becomes the bottom-right one). Clients
-	// translate both ways with the current rotation: label to id when picking, id to
-	// label when showing a saved value. Whether the id exists on the device is
-	// checked when the action runs, not when the binding is saved (the device may be
-	// disconnected).
+	// device as the binding that fires the action, 'profile' a string holding a
+	// Profile.id, rendered as a picker listing the profiles by name, in list_profiles
+	// order. An optional 'profile' that is absent means nothing was picked; each
+	// action defines what that means. Only switch_profile is guaranteed never to
+	// reference a missing profile (see SwitchProfileActionParams): a plugin receiving
+	// a 'profile' param must tolerate an id that no longer exists. An optional
+	// boolean that is absent means false. placeholder only applies to 'string' and
+	// 'input'. 'input' is rendered as a picker listing that device's inputs (narrowed
+	// by input_filter), named and ordered as in the visual editor: Input.label, or
+	// numbered per kind in reading order of the rotated view. An optional 'input'
+	// that is absent means nothing was picked; each action defines what that means
+	// (for set_color, the input that fired the action). The stored value is always
+	// the Input.id (the physical input), never a position or a numbered label:
+	// Device.rotation is presentation only, so rotating the device after saving does
+	// not change which physical input the param targets, while the label the picker
+	// shows for it does change (at 180 degrees the top-left key becomes the
+	// bottom-right one). Clients translate both ways with the current rotation: label
+	// to id when picking, id to label when showing a saved value. Whether the id
+	// exists on the device is checked when the action runs, not when the binding is
+	// saved (the device may be disconnected).
 	Type ParamSpecType `json:"type" yaml:"type" mapstructure:"type"`
 }
 
@@ -2225,6 +2244,7 @@ type ParamSpecType string
 const ParamSpecTypeBoolean ParamSpecType = "boolean"
 const ParamSpecTypeColor ParamSpecType = "color"
 const ParamSpecTypeInput ParamSpecType = "input"
+const ParamSpecTypeProfile ParamSpecType = "profile"
 const ParamSpecTypeString ParamSpecType = "string"
 
 var enumValues_ParamSpecType = []interface{}{
@@ -2232,6 +2252,7 @@ var enumValues_ParamSpecType = []interface{}{
 	"boolean",
 	"color",
 	"input",
+	"profile",
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -2906,7 +2927,9 @@ func (j *SendKeysActionParams) UnmarshalJSON(value []byte) error {
 }
 
 // Sets which profile is active. The active profile is the one the binding editor
-// reads and writes; switching it swaps the live binding set.
+// reads and writes; switching it swaps the live binding set. The switch holds
+// until the frontmost app changes and an auto-switch rule matches it (see
+// AutoSwitchRule).
 type SetActiveProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetActiveProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -3084,7 +3107,9 @@ func (j *SetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
 
 // Creates or updates a binding (input -> action) on a device. The pair (device_id,
 // input_id, trigger) is the unique key; calling this method with an existing key
-// replaces the previous action.
+// replaces the previous action. A switch_profile action (directly or as a step of
+// a macro or toggle) whose profile_id matches no existing profile is rejected with
+// PROFILE_NOT_FOUND and nothing is saved.
 type SetBindingSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetBindingSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -3334,6 +3359,43 @@ func (j *SetInputColorSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = SetInputColorSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'switch_profile' action: makes the given profile active
+// like set_active_profile does (its colors are painted); unlike that request, the
+// daemon pushes active_profile_changed, since no client asked for the switch.
+// Switching to the already active profile does nothing. The sibling built-ins
+// 'next_profile' and 'previous_profile' take no params: they activate the profile
+// after or before the active one in list_profiles order (creation order), wrapping
+// around at either end, and do nothing when there is a single profile. These
+// actions never leave a reference to a missing profile: set_binding rejects an
+// unknown profile_id with PROFILE_NOT_FOUND, and delete_profile and import_profile
+// remove the references they would leave dangling.
+type SwitchProfileActionParams struct {
+	// Identifier of the profile to activate. list_actions advertises it as a
+	// ParamSpec of type 'profile'.
+	ProfileId string `json:"profile_id" yaml:"profile_id" mapstructure:"profile_id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SwitchProfileActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["profile_id"]; raw != nil && !ok {
+		return fmt.Errorf("field profile_id in SwitchProfileActionParams: required")
+	}
+	type Plain SwitchProfileActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ProfileId)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "profile_id", 1)
+	}
+	*j = SwitchProfileActionParams(plain)
 	return nil
 }
 

@@ -25,7 +25,7 @@ export interface MethodGetAutoSwitch {
   };
 }
 /**
- * Maps a foreground application to the profile that should become active while that app is frontmost. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
+ * Maps a foreground application to the profile that becomes active when that app becomes frontmost. The daemon applies a rule only when the frontmost app changes (and once at startup for the app frontmost then), not continuously while the app stays in front: a manual switch (set_active_profile, or a switch_profile, next_profile or previous_profile action) holds until the frontmost app changes again. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
  */
 export interface AutoSwitchRule {
   /**
@@ -33,7 +33,7 @@ export interface AutoSwitchRule {
    */
   app: string;
   /**
-   * Identifier of the profile to activate when this app is frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
+   * Identifier of the profile to activate when this app becomes frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
    */
   profile_id: string;
 }

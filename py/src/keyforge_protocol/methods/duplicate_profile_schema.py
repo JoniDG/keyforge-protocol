@@ -23,7 +23,7 @@ class Result(TypedDict, closed=True):
 
 class MethodDuplicateProfile(TypedDict, closed=True):
     """
-    Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings. Does not change the active profile.
+    Creates a copy of an existing profile under a new name. The server generates a new id and copies the source profile's bindings as-is: a switch_profile action keeps its target, so one that targets the source profile still targets the source, not the copy. Does not change the active profile.
     """
 
     params: Params

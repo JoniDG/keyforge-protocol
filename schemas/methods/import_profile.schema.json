@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://keyforge.dev/schemas/v1/methods/import_profile.schema.json",
   "title": "Method: import_profile",
-  "description": "Reads an ExportedProfile document from 'path' on the daemon host's filesystem, validates it, and creates a new profile from it. The server generates a fresh id; any id in the file is ignored. Does not change the active profile. Returns the created profile.",
+  "description": "Reads an ExportedProfile document from 'path' on the daemon host's filesystem, validates it, and creates a new profile from it. The server generates a fresh id; any id in the file is ignored. Profile ids from another installation are meaningless here, so switch_profile actions in the file whose profile_id matches no existing profile are removed the same way delete_profile removes them (next_profile and previous_profile are kept). Does not change the active profile. Returns the created profile.",
   "type": "object",
   "additionalProperties": false,
   "required": ["params", "result"],

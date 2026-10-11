@@ -19,7 +19,7 @@ export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "cl
 export type Color = string;
 
 /**
- * Reads an ExportedProfile document from 'path' on the daemon host's filesystem, validates it, and creates a new profile from it. The server generates a fresh id; any id in the file is ignored. Does not change the active profile. Returns the created profile.
+ * Reads an ExportedProfile document from 'path' on the daemon host's filesystem, validates it, and creates a new profile from it. The server generates a fresh id; any id in the file is ignored. Profile ids from another installation are meaningless here, so switch_profile actions in the file whose profile_id matches no existing profile are removed the same way delete_profile removes them (next_profile and previous_profile are kept). Does not change the active profile. Returns the created profile.
  */
 export interface MethodImportProfile {
   params: {

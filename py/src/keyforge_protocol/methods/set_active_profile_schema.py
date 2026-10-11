@@ -20,7 +20,7 @@ class Result(TypedDict, closed=True):
 
 class MethodSetActiveProfile(TypedDict, closed=True):
     """
-    Sets which profile is active. The active profile is the one the binding editor reads and writes; switching it swaps the live binding set.
+    Sets which profile is active. The active profile is the one the binding editor reads and writes; switching it swaps the live binding set. The switch holds until the frontmost app changes and an auto-switch rule matches it (see AutoSwitchRule).
     """
 
     params: Params
