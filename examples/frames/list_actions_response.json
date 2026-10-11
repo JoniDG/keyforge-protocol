@@ -26,6 +26,23 @@
           { "name": "input_id", "label": "Input", "type": "input", "required": false, "placeholder": "This key (the one that fired)", "input_filter": { "rgb": true } },
           { "name": "persist", "label": "Save to profile", "type": "boolean", "required": false }
         ]
+      },
+      {
+        "type": "switch_profile",
+        "name": "Switch profile",
+        "params": [
+          { "name": "profile_id", "label": "Profile", "type": "profile", "required": true }
+        ]
+      },
+      {
+        "type": "next_profile",
+        "name": "Next profile",
+        "params": []
+      },
+      {
+        "type": "previous_profile",
+        "name": "Previous profile",
+        "params": []
       }
     ]
   }

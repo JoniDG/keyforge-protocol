@@ -13,7 +13,7 @@ class Params(TypedDict, closed=True):
 
 class MethodSetBinding(TypedDict, closed=True):
     """
-    Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action.
+    Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action. A switch_profile action (directly or as a step of a macro or toggle) whose profile_id matches no existing profile is rejected with PROFILE_NOT_FOUND and nothing is saved.
     """
 
     params: Params

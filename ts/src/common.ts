@@ -192,6 +192,18 @@ export interface SetColorActionParams {
   persist?: boolean;
 }
 /**
+ * Params for the built-in 'switch_profile' action: makes the given profile active like set_active_profile does (its colors are painted); unlike that request, the daemon pushes active_profile_changed, since no client asked for the switch. Switching to the already active profile does nothing. The sibling built-ins 'next_profile' and 'previous_profile' take no params: they activate the profile after or before the active one in list_profiles order (creation order), wrapping around at either end, and do nothing when there is a single profile. These actions never leave a reference to a missing profile: set_binding rejects an unknown profile_id with PROFILE_NOT_FOUND, and delete_profile and import_profile remove the references they would leave dangling.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "SwitchProfileActionParams".
+ */
+export interface SwitchProfileActionParams {
+  /**
+   * Identifier of the profile to activate. list_actions advertises it as a ParamSpec of type 'profile'.
+   */
+  profile_id: string;
+}
+/**
  * Maps an input on a specific device to an action.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -355,7 +367,7 @@ export interface Device {
   rotation?: DeviceRotation;
 }
 /**
- * Maps a foreground application to the profile that should become active while that app is frontmost. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
+ * Maps a foreground application to the profile that becomes active when that app becomes frontmost. The daemon applies a rule only when the frontmost app changes (and once at startup for the app frontmost then), not continuously while the app stays in front: a manual switch (set_active_profile, or a switch_profile, next_profile or previous_profile action) holds until the frontmost app changes again. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
  * via the `definition` "AutoSwitchRule".
@@ -366,7 +378,7 @@ export interface AutoSwitchRule {
    */
   app: string;
   /**
-   * Identifier of the profile to activate when this app is frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
+   * Identifier of the profile to activate when this app becomes frontmost. Must reference an existing profile: set_auto_switch rejects unknown ids with PROFILE_NOT_FOUND, and delete_profile removes the rules pointing to the deleted profile.
    */
   profile_id: string;
 }
@@ -386,12 +398,12 @@ export interface ParamSpec {
    */
   label: string;
   /**
-   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action. An optional boolean that is absent means false. placeholder only applies to 'string' and 'input'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected).
+   * Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action, 'profile' a string holding a Profile.id, rendered as a picker listing the profiles by name, in list_profiles order. An optional 'profile' that is absent means nothing was picked; each action defines what that means. Only switch_profile is guaranteed never to reference a missing profile (see SwitchProfileActionParams): a plugin receiving a 'profile' param must tolerate an id that no longer exists. An optional boolean that is absent means false. placeholder only applies to 'string' and 'input'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected).
    */
-  type: "string" | "boolean" | "color" | "input";
+  type: "string" | "boolean" | "color" | "input" | "profile";
   required: boolean;
   /**
-   * For 'string': placeholder/example shown in the text field. For 'input': label of the picker's 'nothing picked' option in an optional param, describing what the action does when no input is picked (e.g. set_color: 'This key (the one that fired)'); a required 'input' param has no such option, so clients ignore it. Does not apply to 'boolean' or 'color'.
+   * For 'string': placeholder/example shown in the text field. For 'input': label of the picker's 'nothing picked' option in an optional param, describing what the action does when no input is picked (e.g. set_color: 'This key (the one that fired)'); a required 'input' param has no such option, so clients ignore it. Does not apply to 'boolean', 'color' or 'profile'.
    */
   placeholder?: string;
   input_filter?: InputFilter;

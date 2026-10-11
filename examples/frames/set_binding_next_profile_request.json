@@ -1,0 +1,13 @@
+{
+  "type": "request",
+  "id": "b8d2e5f1-6a4c-4b9e-9f3d-7c1a0e2b5d84",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x07",
+      "trigger": "press",
+      "action": { "type": "next_profile" }
+    }
+  }
+}
