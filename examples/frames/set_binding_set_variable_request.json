@@ -1,0 +1,16 @@
+{
+  "type": "request",
+  "id": "5a1f8c3e-7d2b-4e9a-b6c4-0e8d3f2a9c17",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "encoder_0",
+      "trigger": "click",
+      "action": {
+        "type": "set_variable",
+        "params": { "name": "encoder_mode", "op": "add", "value": 1, "wrap": 3 }
+      }
+    }
+  }
+}

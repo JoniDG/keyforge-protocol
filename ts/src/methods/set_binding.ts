@@ -15,7 +15,7 @@ export type DeviceID = string;
 export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "click";
 
 /**
- * Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action. A switch_profile action (directly or as a step of a macro or toggle) whose profile_id matches no existing profile is rejected with PROFILE_NOT_FOUND and nothing is saved.
+ * Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action. A switch_profile action (directly or as a step of a macro, a toggle or an if) whose profile_id matches no existing profile is rejected with PROFILE_NOT_FOUND and nothing is saved.
  */
 export interface MethodSetBinding {
   params: {

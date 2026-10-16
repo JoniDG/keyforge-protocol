@@ -92,7 +92,7 @@ class DelayActionParams(TypedDict, closed=True):
 
 class MacroActionParams(TypedDict, closed=True):
     """
-    Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'.
+    Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'. An 'if' step is allowed (see IfActionParams for what its branches may hold).
     """
 
     steps: list[Action]
@@ -103,7 +103,7 @@ class MacroActionParams(TypedDict, closed=True):
 
 class ToggleActionParams(TypedDict, closed=True):
     """
-    Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either.
+    Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either. An 'if' step is allowed (see IfActionParams for what its branches may hold).
     """
 
     on: list[Action]
@@ -125,6 +125,59 @@ class SwitchProfileActionParams(TypedDict, closed=True):
     """
     Identifier of the profile to activate. list_actions advertises it as a ParamSpec of type 'profile'.
     """
+
+
+type VariableName = str
+"""
+Name of a variable used by the 'set_variable' and 'if' built-ins. Variables are daemon-wide (shared by every profile and binding), hold an integer and live in memory only: every variable is 0 until written and they all start over at 0 when the daemon restarts. Each set_variable is applied atomically, so bindings firing at the same time never lose an update; an if reads the variable when it runs, so it sees writes made by earlier steps of the same macro. Plugins can't read or write them.
+"""
+
+
+type VariableValue = int
+"""
+Integer value of a variable, or an operand compared or combined with one. Bounded to the range a JSON number keeps exact in JavaScript (Number.MAX_SAFE_INTEGER).
+"""
+
+
+class SetVariableActionParams(TypedDict, closed=True):
+    """
+    Params for the built-in 'set_variable' action: writes a variable (see VariableName). 'set' stores value; 'add' adds value to the current one (a negative value subtracts). Without wrap, a result past the VariableValue bounds is clamped to the bound. wrap is only valid with 'add' (the daemon rejects it with 'set' when the binding is saved). list_actions advertises no ParamSpec for it; clients render a dedicated editor.
+    """
+
+    name: VariableName
+    op: Literal['set', 'add']
+    """
+    'set' stores value; 'add' adds value to the current one.
+    """
+    value: VariableValue
+    wrap: NotRequired[int]
+    """
+    Only with 'add': the floored modulo by wrap is taken on the exact sum (it fits in 64 bits, so no clamping applies), which puts the result in 0..wrap-1 and never negative. A current value outside that range (e.g. written by a 'set' elsewhere) is normalized the same way. Cycles modes with a single action: add 1 with wrap 3 goes 0, 1, 2, 0, ...
+    """
+
+
+class VariableCondition(TypedDict, closed=True):
+    """
+    Compares a variable against a constant: true when '<variable> <op> <value>' holds. A variable never written compares as 0.
+    """
+
+    variable: VariableName
+    op: Literal['eq', 'ne', 'lt', 'le', 'gt', 'ge']
+    """
+    Comparison: equal, not equal, less than, less or equal, greater than, greater or equal.
+    """
+    value: VariableValue
+
+
+IfActionParams = TypedDict(
+    'IfActionParams',
+    {
+        'condition': VariableCondition,
+        'then': list[Action],
+        'else': NotRequired[list[Action]],
+    },
+    closed=True,
+)
 
 
 class Binding(TypedDict, closed=True):

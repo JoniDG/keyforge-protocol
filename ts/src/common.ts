@@ -34,6 +34,20 @@ export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "cl
  */
 export type Color = string;
 /**
+ * Name of a variable used by the 'set_variable' and 'if' built-ins. Variables are daemon-wide (shared by every profile and binding), hold an integer and live in memory only: every variable is 0 until written and they all start over at 0 when the daemon restarts. Each set_variable is applied atomically, so bindings firing at the same time never lose an update; an if reads the variable when it runs, so it sees writes made by earlier steps of the same macro. Plugins can't read or write them.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "VariableName".
+ */
+export type VariableName = string;
+/**
+ * Integer value of a variable, or an operand compared or combined with one. Bounded to the range a JSON number keeps exact in JavaScript (Number.MAX_SAFE_INTEGER).
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "VariableValue".
+ */
+export type VariableValue = number;
+/**
  * RGB color as a '#RRGGBB' hex string. Accepted in any case; the daemon stores and returns it lowercase, so clients can compare colors as strings. '#000000' turns the LED off. Hardware-agnostic: the daemon translates it to whatever the device understands (e.g. switching the device to a per-key lighting mode first).
  */
 export type Color1 = string;
@@ -140,7 +154,7 @@ export interface DelayActionParams {
   ms: number;
 }
 /**
- * Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'.
+ * Params for the built-in 'macro' action: runs a sequence of actions in order. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle'. An 'if' step is allowed (see IfActionParams for what its branches may hold).
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
  * via the `definition` "MacroActionParams".
@@ -154,7 +168,7 @@ export interface MacroActionParams {
   steps: [Action, ...Action[]];
 }
 /**
- * Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either.
+ * Params for the built-in 'toggle' action: alternates between two lists of actions, one per firing. The first firing runs 'on', the next one 'off', then 'on' again, and so on. Each list runs in order like a macro, stopping at the first failure. The state is kept in memory per binding: it starts at 'on' when the daemon starts and when the binding is saved (set_binding), and it is not reset when the active profile changes. The state only advances when every step of the list succeeded, so a failed 'on' is retried on the next firing; a plugin step counts as succeeded once action_invoked is sent, since delivery is fire-and-forget. The schema allows any Action as a step; the daemon rejects steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step either. An 'if' step is allowed (see IfActionParams for what its branches may hold).
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
  * via the `definition` "ToggleActionParams".
@@ -202,6 +216,59 @@ export interface SwitchProfileActionParams {
    * Identifier of the profile to activate. list_actions advertises it as a ParamSpec of type 'profile'.
    */
   profile_id: string;
+}
+/**
+ * Params for the built-in 'set_variable' action: writes a variable (see VariableName). 'set' stores value; 'add' adds value to the current one (a negative value subtracts). Without wrap, a result past the VariableValue bounds is clamped to the bound. wrap is only valid with 'add' (the daemon rejects it with 'set' when the binding is saved). list_actions advertises no ParamSpec for it; clients render a dedicated editor.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "SetVariableActionParams".
+ */
+export interface SetVariableActionParams {
+  name: VariableName;
+  /**
+   * 'set' stores value; 'add' adds value to the current one.
+   */
+  op: "set" | "add";
+  value: VariableValue;
+  /**
+   * Only with 'add': the floored modulo by wrap is taken on the exact sum (it fits in 64 bits, so no clamping applies), which puts the result in 0..wrap-1 and never negative. A current value outside that range (e.g. written by a 'set' elsewhere) is normalized the same way. Cycles modes with a single action: add 1 with wrap 3 goes 0, 1, 2, 0, ...
+   */
+  wrap?: number;
+}
+/**
+ * Compares a variable against a constant: true when '<variable> <op> <value>' holds. A variable never written compares as 0.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "VariableCondition".
+ */
+export interface VariableCondition {
+  variable: VariableName;
+  /**
+   * Comparison: equal, not equal, less than, less or equal, greater than, greater or equal.
+   */
+  op: "eq" | "ne" | "lt" | "le" | "gt" | "ge";
+  value: VariableValue;
+}
+/**
+ * Params for the built-in 'if' action: evaluates condition and runs 'then' when it holds, or 'else' (if present) when it doesn't. The chosen list runs in order like a macro, stopping at the first failure, and the 'if' fails when that list fails (so a macro holding it stops, and a toggle holding it doesn't advance). An 'if' may be the binding's action itself, a step of a macro or a step of either toggle list. The schema allows any Action in its lists; the daemon rejects steps whose type is 'macro', 'toggle' or 'if' when the binding is saved. list_actions advertises no ParamSpec for it; clients render a dedicated editor.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "IfActionParams".
+ */
+export interface IfActionParams {
+  condition: VariableCondition;
+  /**
+   * Actions run when the condition holds. Must contain at least one step.
+   *
+   * @minItems 1
+   */
+  then: [Action, ...Action[]];
+  /**
+   * Actions run when the condition doesn't hold. Absent means nothing runs; when present, must contain at least one step.
+   *
+   * @minItems 1
+   */
+  else?: [Action, ...Action[]];
 }
 /**
  * Maps an input on a specific device to an action.

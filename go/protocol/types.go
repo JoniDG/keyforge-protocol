@@ -81,9 +81,10 @@ type ActionInvokedSchemaJsonData struct {
 	Action ActionInvokedSchemaJsonDataAction `json:"action" yaml:"action" mapstructure:"action"`
 
 	// Opaque id of the binding instance that fired: unique per binding and per step
-	// of a macro or of each list of a toggle, and stable for as long as that binding
-	// exists (also across daemon restarts). Lets a plugin keep per-instance state,
-	// e.g. a toggle bound to two keys. Plugins must not parse it.
+	// of a macro, of each list of a toggle and of each branch of an if (at any
+	// nesting level), and stable for as long as that binding exists (also across
+	// daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to
+	// two keys. Plugins must not parse it.
 	Context string `json:"context" yaml:"context" mapstructure:"context"`
 
 	// Hardware event that fired the binding (e.g. lets a plugin tell rotate_cw from
@@ -475,9 +476,12 @@ func (j *DelayActionParams) UnmarshalJSON(value []byte) error {
 // is always returned. Auto-switch rules whose profile_id points to the deleted
 // profile are deleted with it, so the stored rule set never references a missing
 // profile. Likewise, every switch_profile action in the remaining profiles that
-// targets the deleted profile is removed: a macro or toggle step is dropped from
-// its list, and a binding is deleted when its action is such a switch_profile or
-// when dropping steps leaves its macro steps, or either side of its toggle, empty.
+// targets the deleted profile is removed: a step of a macro, a toggle or an if is
+// dropped from its list. Then, bottom up: an if whose 'else' became empty loses
+// its 'else'; an if whose 'then' became empty is removed like such a step (from
+// its macro or toggle list, or as the binding's action); and a binding is deleted
+// when its action is removed or when its macro steps, or either side of its
+// toggle, became empty.
 type DeleteProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params DeleteProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -1168,6 +1172,53 @@ func (j *HelloSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = HelloSchemaJson(plain)
+	return nil
+}
+
+// Params for the built-in 'if' action: evaluates condition and runs 'then' when it
+// holds, or 'else' (if present) when it doesn't. The chosen list runs in order
+// like a macro, stopping at the first failure, and the 'if' fails when that list
+// fails (so a macro holding it stops, and a toggle holding it doesn't advance). An
+// 'if' may be the binding's action itself, a step of a macro or a step of either
+// toggle list. The schema allows any Action in its lists; the daemon rejects steps
+// whose type is 'macro', 'toggle' or 'if' when the binding is saved. list_actions
+// advertises no ParamSpec for it; clients render a dedicated editor.
+type IfActionParams struct {
+	// Condition corresponds to the JSON schema field "condition".
+	Condition VariableCondition `json:"condition" yaml:"condition" mapstructure:"condition"`
+
+	// Actions run when the condition doesn't hold. Absent means nothing runs; when
+	// present, must contain at least one step.
+	Else []Action `json:"else,omitempty,omitzero" yaml:"else,omitempty" mapstructure:"else,omitempty"`
+
+	// Actions run when the condition holds. Must contain at least one step.
+	Then []Action `json:"then" yaml:"then" mapstructure:"then"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *IfActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["condition"]; raw != nil && !ok {
+		return fmt.Errorf("field condition in IfActionParams: required")
+	}
+	if _, ok := raw["then"]; raw != nil && !ok {
+		return fmt.Errorf("field then in IfActionParams: required")
+	}
+	type Plain IfActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Else != nil && len(plain.Else) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "else", 1)
+	}
+	if plain.Then != nil && len(plain.Then) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "then", 1)
+	}
+	*j = IfActionParams(plain)
 	return nil
 }
 
@@ -2165,7 +2216,8 @@ func (j *ListProfilesSchemaJson) UnmarshalJSON(value []byte) error {
 
 // Params for the built-in 'macro' action: runs a sequence of actions in order. The
 // schema allows any Action as a step; the daemon rejects steps whose type is
-// 'macro' or 'toggle'.
+// 'macro' or 'toggle'. An 'if' step is allowed (see IfActionParams for what its
+// branches may hold).
 type MacroActionParams struct {
 	// Actions to run in order. Must contain at least one step.
 	Steps []Action `json:"steps" yaml:"steps" mapstructure:"steps"`
@@ -3108,8 +3160,8 @@ func (j *SetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
 // Creates or updates a binding (input -> action) on a device. The pair (device_id,
 // input_id, trigger) is the unique key; calling this method with an existing key
 // replaces the previous action. A switch_profile action (directly or as a step of
-// a macro or toggle) whose profile_id matches no existing profile is rejected with
-// PROFILE_NOT_FOUND and nothing is saved.
+// a macro, a toggle or an if) whose profile_id matches no existing profile is
+// rejected with PROFILE_NOT_FOUND and nothing is saved.
 type SetBindingSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetBindingSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -3362,6 +3414,90 @@ func (j *SetInputColorSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Params for the built-in 'set_variable' action: writes a variable (see
+// VariableName). 'set' stores value; 'add' adds value to the current one (a
+// negative value subtracts). Without wrap, a result past the VariableValue bounds
+// is clamped to the bound. wrap is only valid with 'add' (the daemon rejects it
+// with 'set' when the binding is saved). list_actions advertises no ParamSpec for
+// it; clients render a dedicated editor.
+type SetVariableActionParams struct {
+	// Name corresponds to the JSON schema field "name".
+	Name VariableName `json:"name" yaml:"name" mapstructure:"name"`
+
+	// 'set' stores value; 'add' adds value to the current one.
+	Op SetVariableActionParamsOp `json:"op" yaml:"op" mapstructure:"op"`
+
+	// Value corresponds to the JSON schema field "value".
+	Value VariableValue `json:"value" yaml:"value" mapstructure:"value"`
+
+	// Only with 'add': the floored modulo by wrap is taken on the exact sum (it fits
+	// in 64 bits, so no clamping applies), which puts the result in 0..wrap-1 and
+	// never negative. A current value outside that range (e.g. written by a 'set'
+	// elsewhere) is normalized the same way. Cycles modes with a single action: add 1
+	// with wrap 3 goes 0, 1, 2, 0, ...
+	Wrap *int `json:"wrap,omitempty,omitzero" yaml:"wrap,omitempty" mapstructure:"wrap,omitempty"`
+}
+
+type SetVariableActionParamsOp string
+
+const SetVariableActionParamsOpAdd SetVariableActionParamsOp = "add"
+const SetVariableActionParamsOpSet SetVariableActionParamsOp = "set"
+
+var enumValues_SetVariableActionParamsOp = []interface{}{
+	"set",
+	"add",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetVariableActionParamsOp) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_SetVariableActionParamsOp {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_SetVariableActionParamsOp, v)
+	}
+	*j = SetVariableActionParamsOp(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SetVariableActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in SetVariableActionParams: required")
+	}
+	if _, ok := raw["op"]; raw != nil && !ok {
+		return fmt.Errorf("field op in SetVariableActionParams: required")
+	}
+	if _, ok := raw["value"]; raw != nil && !ok {
+		return fmt.Errorf("field value in SetVariableActionParams: required")
+	}
+	type Plain SetVariableActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Wrap != nil && 9007199254740991 < *plain.Wrap {
+		return fmt.Errorf("field %s: must be <= %v", "wrap", 9007199254740991)
+	}
+	if plain.Wrap != nil && 1 > *plain.Wrap {
+		return fmt.Errorf("field %s: must be >= %v", "wrap", 1)
+	}
+	*j = SetVariableActionParams(plain)
+	return nil
+}
+
 // Params for the built-in 'switch_profile' action: makes the given profile active
 // like set_active_profile does (its colors are painted); unlike that request, the
 // daemon pushes active_profile_changed, since no client asked for the switch.
@@ -3409,7 +3545,8 @@ func (j *SwitchProfileActionParams) UnmarshalJSON(value []byte) error {
 // step counts as succeeded once action_invoked is sent, since delivery is
 // fire-and-forget. The schema allows any Action as a step; the daemon rejects
 // steps whose type is 'macro' or 'toggle', and a toggle can't be a macro step
-// either.
+// either. An 'if' step is allowed (see IfActionParams for what its branches may
+// hold).
 type ToggleActionParams struct {
 	// Actions run on the second firing and every other one after it. Must contain at
 	// least one step.
@@ -3504,5 +3641,129 @@ func (j *UninstallPluginSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = UninstallPluginSchemaJson(plain)
+	return nil
+}
+
+// Compares a variable against a constant: true when '<variable> <op> <value>'
+// holds. A variable never written compares as 0.
+type VariableCondition struct {
+	// Comparison: equal, not equal, less than, less or equal, greater than, greater
+	// or equal.
+	Op VariableConditionOp `json:"op" yaml:"op" mapstructure:"op"`
+
+	// Value corresponds to the JSON schema field "value".
+	Value VariableValue `json:"value" yaml:"value" mapstructure:"value"`
+
+	// Variable corresponds to the JSON schema field "variable".
+	Variable VariableName `json:"variable" yaml:"variable" mapstructure:"variable"`
+}
+
+type VariableConditionOp string
+
+const VariableConditionOpEq VariableConditionOp = "eq"
+const VariableConditionOpGe VariableConditionOp = "ge"
+const VariableConditionOpGt VariableConditionOp = "gt"
+const VariableConditionOpLe VariableConditionOp = "le"
+const VariableConditionOpLt VariableConditionOp = "lt"
+const VariableConditionOpNe VariableConditionOp = "ne"
+
+var enumValues_VariableConditionOp = []interface{}{
+	"eq",
+	"ne",
+	"lt",
+	"le",
+	"gt",
+	"ge",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *VariableConditionOp) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_VariableConditionOp {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_VariableConditionOp, v)
+	}
+	*j = VariableConditionOp(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *VariableCondition) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["op"]; raw != nil && !ok {
+		return fmt.Errorf("field op in VariableCondition: required")
+	}
+	if _, ok := raw["value"]; raw != nil && !ok {
+		return fmt.Errorf("field value in VariableCondition: required")
+	}
+	if _, ok := raw["variable"]; raw != nil && !ok {
+		return fmt.Errorf("field variable in VariableCondition: required")
+	}
+	type Plain VariableCondition
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = VariableCondition(plain)
+	return nil
+}
+
+// Name of a variable used by the 'set_variable' and 'if' built-ins. Variables are
+// daemon-wide (shared by every profile and binding), hold an integer and live in
+// memory only: every variable is 0 until written and they all start over at 0 when
+// the daemon restarts. Each set_variable is applied atomically, so bindings firing
+// at the same time never lose an update; an if reads the variable when it runs, so
+// it sees writes made by earlier steps of the same macro. Plugins can't read or
+// write them.
+type VariableName string
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *VariableName) UnmarshalJSON(value []byte) error {
+	type Plain VariableName
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[a-z][a-z0-9_]*$`, string(plain)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "", `^[a-z][a-z0-9_]*$`)
+	}
+	if utf8.RuneCountInString(string(plain)) > 64 {
+		return fmt.Errorf("field %s length: must be <= %d", "", 64)
+	}
+	*j = VariableName(plain)
+	return nil
+}
+
+// Integer value of a variable, or an operand compared or combined with one.
+// Bounded to the range a JSON number keeps exact in JavaScript
+// (Number.MAX_SAFE_INTEGER).
+type VariableValue int
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *VariableValue) UnmarshalJSON(value []byte) error {
+	type Plain VariableValue
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if 9007199254740991 < plain {
+		return fmt.Errorf("field %s: must be <= %v", "", 9007199254740991)
+	}
+	if -9007199254740991 > plain {
+		return fmt.Errorf("field %s: must be >= %v", "", -9007199254740991)
+	}
+	*j = VariableValue(plain)
 	return nil
 }

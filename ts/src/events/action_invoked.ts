@@ -24,7 +24,7 @@ export type InputAction = "press" | "release" | "rotate_cw" | "rotate_ccw" | "cl
 export interface EventActionInvoked {
   data: {
     /**
-     * Opaque id of the binding instance that fired: unique per binding and per step of a macro or of each list of a toggle, and stable for as long as that binding exists (also across daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two keys. Plugins must not parse it.
+     * Opaque id of the binding instance that fired: unique per binding and per step of a macro, of each list of a toggle and of each branch of an if (at any nesting level), and stable for as long as that binding exists (also across daemon restarts). Lets a plugin keep per-instance state, e.g. a toggle bound to two keys. Plugins must not parse it.
      */
     context: string;
     /**
