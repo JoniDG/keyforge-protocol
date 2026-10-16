@@ -1,0 +1,33 @@
+{
+  "type": "request",
+  "id": "c7e4a2d9-3b8f-4a1c-9e5d-2f6b0a8c4e93",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x09",
+      "trigger": "press",
+      "action": {
+        "type": "macro",
+        "params": {
+          "steps": [
+            { "type": "set_variable", "params": { "name": "coffees", "op": "add", "value": 1 } },
+            {
+              "type": "if",
+              "params": {
+                "condition": { "variable": "coffees", "op": "ge", "value": 3 },
+                "then": [
+                  { "type": "set_color", "params": { "color": "#ff0000" } },
+                  { "type": "set_variable", "params": { "name": "coffees", "op": "set", "value": 0 } }
+                ],
+                "else": [
+                  { "type": "set_color", "params": { "color": "#00ff00" } }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

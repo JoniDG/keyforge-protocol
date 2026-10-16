@@ -20,7 +20,7 @@ class Result(TypedDict, closed=True):
 
 class MethodDeleteProfile(TypedDict, closed=True):
     """
-    Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned. Auto-switch rules whose profile_id points to the deleted profile are deleted with it, so the stored rule set never references a missing profile. Likewise, every switch_profile action in the remaining profiles that targets the deleted profile is removed: a macro or toggle step is dropped from its list, and a binding is deleted when its action is such a switch_profile or when dropping steps leaves its macro steps, or either side of its toggle, empty.
+    Deletes a profile. The daemon never deletes the last remaining profile. Deleting the active profile reassigns the active one, so the resulting active profile id is always returned. Auto-switch rules whose profile_id points to the deleted profile are deleted with it, so the stored rule set never references a missing profile. Likewise, every switch_profile action in the remaining profiles that targets the deleted profile is removed: a step of a macro, a toggle or an if is dropped from its list. Then, bottom up: an if whose 'else' became empty loses its 'else'; an if whose 'then' became empty is removed like such a step (from its macro or toggle list, or as the binding's action); and a binding is deleted when its action is removed or when its macro steps, or either side of its toggle, became empty.
     """
 
     params: Params

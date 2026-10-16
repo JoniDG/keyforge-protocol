@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://keyforge.dev/schemas/v1/methods/set_binding.schema.json",
   "title": "Method: set_binding",
-  "description": "Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action. A switch_profile action (directly or as a step of a macro or toggle) whose profile_id matches no existing profile is rejected with PROFILE_NOT_FOUND and nothing is saved.",
+  "description": "Creates or updates a binding (input -> action) on a device. The pair (device_id, input_id, trigger) is the unique key; calling this method with an existing key replaces the previous action. A switch_profile action (directly or as a step of a macro, a toggle or an if) whose profile_id matches no existing profile is rejected with PROFILE_NOT_FOUND and nothing is saved.",
   "type": "object",
   "additionalProperties": false,
   "required": ["params", "result"],
