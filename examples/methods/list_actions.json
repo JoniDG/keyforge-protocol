@@ -6,7 +6,7 @@
         "type": "launch_app",
         "name": "Launch app",
         "params": [
-          { "name": "path", "label": "Application path", "type": "string", "required": true }
+          { "name": "path", "label": "Application path", "type": "path", "required": true, "placeholder": "/System/Applications/Calculator.app", "path_kind": "app" }
         ]
       },
       {
