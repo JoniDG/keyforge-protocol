@@ -28,7 +28,8 @@
       "description": "Turn the encoder to change Spotify's volume.",
       "inputs": ["encoder"],
       "params": [
-        { "name": "step", "label": "Step (%)", "type": "string", "required": false, "placeholder": "5" }
+        { "name": "step", "label": "Step (%)", "type": "string", "required": false, "placeholder": "5" },
+        { "name": "cache_dir", "label": "Cache folder", "type": "path", "required": false, "path_kind": "folder" }
       ]
     }
   ]

@@ -70,12 +70,12 @@ class SendKeysActionParams(TypedDict, closed=True):
 
 class LaunchAppActionParams(TypedDict, closed=True):
     """
-    Params for the built-in 'launch_app' action: launches an application.
+    Params for the built-in 'launch_app' action: opens an application, file or folder with the OS launcher. Its descriptor announces 'path' as a ParamSpec of type 'path' with path_kind 'app': the picker suggests applications, but any path can be typed, pasted or dropped.
     """
 
     path: str
     """
-    Absolute path to the application or executable to launch.
+    Absolute path to the application, file or folder to open, in the native format of the OS the daemon runs on.
     """
 
 
@@ -269,6 +269,12 @@ class InputFilter(TypedDict, closed=True):
     """
 
 
+type PathKind = Literal['app', 'file', 'folder']
+"""
+What the native picker of a ParamSpec of type 'path' is for. Only valid with type 'path': a ParamSpec of any other type that carries it is rejected. A hint for the picker, not a restriction: the user can still type, paste or drop any path, and the daemon does not check the value against it. 'app' picks an application, mapped by each client to its OS (macOS: opens in /Applications and selects .app bundles, which also live in /System/Applications; Windows: .exe and .lnk files; Linux: a plain file picker, since apps there are executables or .desktop entries spread across several folders). 'file' picks any file. 'folder' picks a directory. Absent means 'file'.
+"""
+
+
 type PluginID = str
 """
 Globally unique plugin identifier in reverse-DNS form (e.g. 'dev.jonidg.spotify'). Lowercase, at least two dot-separated segments, each starting with a letter. Used as the install folder name and as <plugin_id> in Action.type.
@@ -451,16 +457,17 @@ class ParamSpec(TypedDict, closed=True):
     """
     Human-friendly field label.
     """
-    type: Literal['string', 'boolean', 'color', 'input', 'profile']
+    type: Literal['string', 'boolean', 'color', 'input', 'profile', 'path']
     """
-    Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action, 'profile' a string holding a Profile.id, rendered as a picker listing the profiles by name, in list_profiles order. An optional 'profile' that is absent means nothing was picked; each action defines what that means. Only switch_profile is guaranteed never to reference a missing profile (see SwitchProfileActionParams): a plugin receiving a 'profile' param must tolerate an id that no longer exists. An optional boolean that is absent means false. placeholder only applies to 'string' and 'input'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected).
+    Param value type, which sets the JSON type written into Action.params: 'string' a string, 'boolean' a boolean, 'color' a Color ('#RRGGBB' string, rendered as a color picker), 'input' a string holding the Input.id of an input on the same device as the binding that fires the action, 'profile' a string holding a Profile.id, rendered as a picker listing the profiles by name, in list_profiles order. An optional 'profile' that is absent means nothing was picked; each action defines what that means. Only switch_profile is guaranteed never to reference a missing profile (see SwitchProfileActionParams): a plugin receiving a 'profile' param must tolerate an id that no longer exists. 'path' is a string holding an absolute filesystem path in the native format of the OS the daemon runs on (backslashes on Windows; unlike plugin manifest paths, it is not normalized to '/'). A 'path' is rendered as an editable text field (typing and pasting always work) plus a button that opens the native file picker, guided by path_kind, and accepts files dropped onto it where the platform allows. Clients store the path the user picked as is: a Windows shortcut (.lnk) is stored as the .lnk, not resolved to its target. Whether the path exists is checked when the action runs, not when the binding is saved. A client that does not know 'path' should fall back to a plain text field, since the value is a string either way; an older Go consumer instead rejects the unknown enum value and fails to decode the whole list_actions response and any PluginManifest that uses it (accepted because core and desktop ship together). An optional 'path' that is absent means nothing was picked; each action defines what that means. An optional boolean that is absent means false. placeholder only applies to 'string', 'input' and 'path'. 'input' is rendered as a picker listing that device's inputs (narrowed by input_filter), named and ordered as in the visual editor: Input.label, or numbered per kind in reading order of the rotated view. An optional 'input' that is absent means nothing was picked; each action defines what that means (for set_color, the input that fired the action). The stored value is always the Input.id (the physical input), never a position or a numbered label: Device.rotation is presentation only, so rotating the device after saving does not change which physical input the param targets, while the label the picker shows for it does change (at 180 degrees the top-left key becomes the bottom-right one). Clients translate both ways with the current rotation: label to id when picking, id to label when showing a saved value. Whether the id exists on the device is checked when the action runs, not when the binding is saved (the device may be disconnected).
     """
     required: bool
     placeholder: NotRequired[str]
     """
-    For 'string': placeholder/example shown in the text field. For 'input': label of the picker's 'nothing picked' option in an optional param, describing what the action does when no input is picked (e.g. set_color: 'This key (the one that fired)'); a required 'input' param has no such option, so clients ignore it. Does not apply to 'boolean', 'color' or 'profile'.
+    For 'string': placeholder/example shown in the text field. For 'input': label of the picker's 'nothing picked' option in an optional param, describing what the action does when no input is picked (e.g. set_color: 'This key (the one that fired)'); a required 'input' param has no such option, so clients ignore it. For 'path': example path shown in the text field, for the OS the daemon runs on. Does not apply to 'boolean', 'color' or 'profile'.
     """
     input_filter: NotRequired[InputFilter]
+    path_kind: NotRequired[PathKind]
 
 
 class Entrypoint(TypedDict, closed=True):

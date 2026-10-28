@@ -100,7 +100,14 @@ MANIFEST: PluginManifest = {
                     "type": "string",
                     "required": False,
                     "placeholder": "5",
-                }
+                },
+                {
+                    "name": "cache_dir",
+                    "label": "Cache folder",
+                    "type": "path",
+                    "required": False,
+                    "path_kind": "folder",
+                },
             ],
         },
     ],
