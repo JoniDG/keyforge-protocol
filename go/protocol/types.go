@@ -1079,8 +1079,9 @@ func (j *GetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
 
 // Returns runtime facts about the daemon process that the client needs to guide
 // the user, such as whether macOS lets it read input devices. Values are read when
-// the request arrives, so a client that shows a permission prompt calls it again
-// to notice when access is granted.
+// the request arrives, but macOS settles a process's Input Monitoring access when
+// it starts: a permission granted while the daemon runs is neither reported nor
+// used until the daemon restarts.
 type GetDaemonStatusSchemaJson struct {
 	// No parameters in v1.
 	Params GetDaemonStatusSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -1096,7 +1097,8 @@ type GetDaemonStatusSchemaJsonResult struct {
 	// Absolute path of the running daemon executable, with symlinks resolved: the
 	// process whose access input_monitoring reports. Clients use it to tell the user
 	// which program needs the permission; when the executable lives inside an .app
-	// bundle, System Settings may list the enclosing app instead.
+	// bundle, macOS checks the permission of the enclosing app, so that is what the
+	// user must turn on.
 	ExecutablePath string `json:"executable_path" yaml:"executable_path" mapstructure:"executable_path"`
 
 	// macOS Input Monitoring access of the daemon process, as reported by

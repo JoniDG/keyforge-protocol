@@ -6,7 +6,7 @@
  */
 
 /**
- * Returns runtime facts about the daemon process that the client needs to guide the user, such as whether macOS lets it read input devices. Values are read when the request arrives, so a client that shows a permission prompt calls it again to notice when access is granted.
+ * Returns runtime facts about the daemon process that the client needs to guide the user, such as whether macOS lets it read input devices. Values are read when the request arrives, but macOS settles a process's Input Monitoring access when it starts: a permission granted while the daemon runs is neither reported nor used until the daemon restarts.
  */
 export interface MethodGetDaemonStatus {
   /**
@@ -15,7 +15,7 @@ export interface MethodGetDaemonStatus {
   params: {};
   result: {
     /**
-     * Absolute path of the running daemon executable, with symlinks resolved: the process whose access input_monitoring reports. Clients use it to tell the user which program needs the permission; when the executable lives inside an .app bundle, System Settings may list the enclosing app instead.
+     * Absolute path of the running daemon executable, with symlinks resolved: the process whose access input_monitoring reports. Clients use it to tell the user which program needs the permission; when the executable lives inside an .app bundle, macOS checks the permission of the enclosing app, so that is what the user must turn on.
      */
     executable_path: string;
     /**
