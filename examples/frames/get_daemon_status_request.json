@@ -1,0 +1,6 @@
+{
+  "type": "request",
+  "id": "c4d5e6f7-8a9b-4c0d-9e1f-2a3b4c5d6e7f",
+  "method": "get_daemon_status",
+  "params": {}
+}

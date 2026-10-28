@@ -215,6 +215,15 @@ La distribución física viaja en el contrato para que la GUI pueda dibujar cual
 - **`set_device_rotation {device_id, rotation} → {}`** (ack vacío, como `set_input_color`): persiste por `device_id` y `list_devices` la expone. Rechaza `device_id` desconocidos; los códigos de error los define `keyforge-core`.
 - **Gotcha del generador Go:** si `common.schema.json` se procesa primero, `go-jsonschema` duplica un `$def` enum **entero** referenciado desde otro archivo (`DeviceRotation_1`). Por eso el `Makefile` le pasa métodos y eventos antes que `common`. Además, un `$ref` con `description` al lado hace que `json2ts` emita un alias duplicado (`Color1`): para `$def`s compartidos, la descripción va en el `$def`.
 
+## Estado del daemon: `get_daemon_status` (DECIDIDO 2026-10-28)
+
+Para el aviso de Input Monitoring de macOS: la GUI muestra qué programa necesita el permiso y se entera cuando se concede.
+
+- **`get_daemon_status {} → {executable_path, input_monitoring?}`**. `executable_path` = path absoluto del `keyforged` que corre, con symlinks resueltos (el proceso cuyo acceso reporta `input_monitoring`). La GUI deriva de ahí qué mostrarle al usuario: con el binario dentro de un `.app`, System Settings puede listar la app que lo contiene y no el binario (TCC atribuye el permiso al "responsible process"); confirmarlo con el bundle real en core/desktop. `input_monitoring` = `granted|denied|unknown`, lo que devuelve `IOHIDCheckAccess` (`unknown` = todavía no se le preguntó al usuario, `kIOHIDAccessTypeUnknown`); **solo en macOS**, ausente en los demás SO.
+- **Método, no campo del `welcome`** (decisión del owner): el permiso cambia durante la sesión y la respuesta del `hello` queda fija. **Tampoco es un evento**: macOS no avisa cuando se concede, así que el daemon igual tendría que hacer polling; la GUI vuelve a llamar al método mientras muestra el aviso. Un evento de cambio se puede sumar después de forma aditiva.
+- Los tres valores entran desde ya (son los de `IOHIDAccessType`): sumar uno después rompe a un consumidor Go viejo (mismo criterio que `starting` en `InstalledPlugin`).
+- Nombre genérico (decisión del owner) para sumar más estado del daemon como campos opcionales, sin agregar métodos. Un plugin no lo puede llamar (la allowlist sigue siendo solo `hello`).
+
 ## Tipos Python (DECIDIDO 2026-10-10)
 
 Paquete PyPI `jdg-keyforge-protocol` (import `keyforge_protocol`) para el SDK Python. Mismo modelo que `ts/`: checked in, solo tipos, versión alineada con Go/TS y tag `py/vX.Y.Z`. Arrancó en **0.16.1** (el contrato vigente) sin bumpear Go/TS, porque para ellos no cambiaba nada.

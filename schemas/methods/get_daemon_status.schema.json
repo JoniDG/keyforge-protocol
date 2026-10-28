@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/get_daemon_status.schema.json",
+  "title": "Method: get_daemon_status",
+  "description": "Returns runtime facts about the daemon process that the client needs to guide the user, such as whether macOS lets it read input devices. Values are read when the request arrives, so a client that shows a permission prompt calls it again to notice when access is granted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executable_path"],
+      "properties": {
+        "executable_path": {
+          "type": "string",
+          "description": "Absolute path of the running daemon executable, with symlinks resolved: the process whose access input_monitoring reports. Clients use it to tell the user which program needs the permission; when the executable lives inside an .app bundle, System Settings may list the enclosing app instead.",
+          "minLength": 1,
+          "examples": ["/Applications/KeyForge.app/Contents/MacOS/keyforged"]
+        },
+        "input_monitoring": {
+          "type": "string",
+          "description": "macOS Input Monitoring access of the daemon process, as reported by IOHIDCheckAccess: 'granted', 'denied', or 'unknown' (the user has not been asked yet). Present only on macOS; absent on platforms without this permission.",
+          "enum": ["granted", "denied", "unknown"]
+        }
+      }
+    }
+  }
+}

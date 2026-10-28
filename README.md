@@ -146,6 +146,10 @@ Clients can draw any device with its physical layout, not just a known model:
 - **Labels.** `Input.label` is a fixed name (e.g. `Enter`, `Play`) shown as-is in any orientation. Without one, clients name inputs by position: numbered per kind in reading order of the current, rotated view (by each input's top-left corner, `y` first, then `x`), so `Key 1` is always the top-left key as the device sits on the desk. Without a complete layout, inputs are numbered per kind in the order `list_devices` returns them.
 - **Rotation.** `Device.rotation` is `0`, `90`, `180` or `270` degrees clockwise applied to the canonical layout (absent means `0`). It is set with `set_device_rotation { device_id, rotation } → {}` and stored **per device, not per profile**. It is presentation only: bindings and colors stay tied to the input id.
 
+## Daemon status
+
+`get_daemon_status {} → { executable_path, input_monitoring? }` reports what a client needs to help the user grant OS permissions. `executable_path` is the absolute path of the running daemon binary. `input_monitoring` is the daemon's macOS Input Monitoring access (`granted`, `denied` or `unknown` when the user hasn't been asked yet), and it's absent on other platforms. Values are read on every call, so a client showing a "grant access" prompt can call it again to notice the change.
+
 ## Consuming from Go
 
 The generated Go types are published as a submodule under [`go/`](./go) so any consumer can pull them in:

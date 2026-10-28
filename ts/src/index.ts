@@ -8,6 +8,7 @@ export type { MethodDeleteProfile } from './methods/delete_profile.js';
 export type { MethodDuplicateProfile } from './methods/duplicate_profile.js';
 export type { MethodExportProfile } from './methods/export_profile.js';
 export type { MethodGetAutoSwitch } from './methods/get_auto_switch.js';
+export type { MethodGetDaemonStatus } from './methods/get_daemon_status.js';
 export type { MethodHello } from './methods/hello.js';
 export type { MethodImportProfile } from './methods/import_profile.js';
 export type { MethodInspectPlugin } from './methods/inspect_plugin.js';
