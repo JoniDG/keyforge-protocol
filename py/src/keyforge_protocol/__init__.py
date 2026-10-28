@@ -73,6 +73,10 @@ from .methods.get_auto_switch_schema import (
     MethodGetAutoSwitch,
     Result as GetAutoSwitchResult,
 )
+from .methods.get_daemon_status_schema import (
+    MethodGetDaemonStatus,
+    Result as GetDaemonStatusResult,
+)
 from .methods.hello_schema import (
     MethodHello,
     Params as HelloParams,
@@ -159,6 +163,7 @@ from .events.input_schema import (
 )
 
 type GetAutoSwitchParams = JsonObject
+type GetDaemonStatusParams = JsonObject
 type ListActionsParams = JsonObject
 type ListBindingsParams = JsonObject
 type ListDevicesParams = JsonObject
@@ -202,6 +207,8 @@ __all__ = [
     "ExportedProfile",
     "GetAutoSwitchParams",
     "GetAutoSwitchResult",
+    "GetDaemonStatusParams",
+    "GetDaemonStatusResult",
     "HelloParams",
     "HelloResult",
     "ImportProfileParams",
@@ -238,6 +245,7 @@ __all__ = [
     "MethodDuplicateProfile",
     "MethodExportProfile",
     "MethodGetAutoSwitch",
+    "MethodGetDaemonStatus",
     "MethodHello",
     "MethodImportProfile",
     "MethodInspectPlugin",

@@ -1077,6 +1077,108 @@ func (j *GetAutoSwitchSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Returns runtime facts about the daemon process that the client needs to guide
+// the user, such as whether macOS lets it read input devices. Values are read when
+// the request arrives, so a client that shows a permission prompt calls it again
+// to notice when access is granted.
+type GetDaemonStatusSchemaJson struct {
+	// No parameters in v1.
+	Params GetDaemonStatusSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result GetDaemonStatusSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type GetDaemonStatusSchemaJsonParams map[string]interface{}
+
+type GetDaemonStatusSchemaJsonResult struct {
+	// Absolute path of the running daemon executable, with symlinks resolved: the
+	// process whose access input_monitoring reports. Clients use it to tell the user
+	// which program needs the permission; when the executable lives inside an .app
+	// bundle, System Settings may list the enclosing app instead.
+	ExecutablePath string `json:"executable_path" yaml:"executable_path" mapstructure:"executable_path"`
+
+	// macOS Input Monitoring access of the daemon process, as reported by
+	// IOHIDCheckAccess: 'granted', 'denied', or 'unknown' (the user has not been
+	// asked yet). Present only on macOS; absent on platforms without this permission.
+	InputMonitoring *GetDaemonStatusSchemaJsonResultInputMonitoring `json:"input_monitoring,omitempty,omitzero" yaml:"input_monitoring,omitempty" mapstructure:"input_monitoring,omitempty"`
+}
+
+type GetDaemonStatusSchemaJsonResultInputMonitoring string
+
+const GetDaemonStatusSchemaJsonResultInputMonitoringDenied GetDaemonStatusSchemaJsonResultInputMonitoring = "denied"
+const GetDaemonStatusSchemaJsonResultInputMonitoringGranted GetDaemonStatusSchemaJsonResultInputMonitoring = "granted"
+const GetDaemonStatusSchemaJsonResultInputMonitoringUnknown GetDaemonStatusSchemaJsonResultInputMonitoring = "unknown"
+
+var enumValues_GetDaemonStatusSchemaJsonResultInputMonitoring = []interface{}{
+	"granted",
+	"denied",
+	"unknown",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetDaemonStatusSchemaJsonResultInputMonitoring) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_GetDaemonStatusSchemaJsonResultInputMonitoring {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_GetDaemonStatusSchemaJsonResultInputMonitoring, v)
+	}
+	*j = GetDaemonStatusSchemaJsonResultInputMonitoring(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetDaemonStatusSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["executable_path"]; raw != nil && !ok {
+		return fmt.Errorf("field executable_path in GetDaemonStatusSchemaJsonResult: required")
+	}
+	type Plain GetDaemonStatusSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if utf8.RuneCountInString(string(plain.ExecutablePath)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "executable_path", 1)
+	}
+	*j = GetDaemonStatusSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetDaemonStatusSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in GetDaemonStatusSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in GetDaemonStatusSchemaJson: required")
+	}
+	type Plain GetDaemonStatusSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = GetDaemonStatusSchemaJson(plain)
+	return nil
+}
+
 // Mandatory first request after a WebSocket connection is established. The client
 // declares the protocol_version it speaks. The server either accepts
 // (Response.ok=true with its own identification) or closes the connection with an
