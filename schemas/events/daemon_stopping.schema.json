@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/events/daemon_stopping.schema.json",
+  "title": "Event: daemon_stopping",
+  "description": "Pushed by the daemon to every client connection except plugins right before a controlled shutdown, so a client can tell a requested stop from a crash. Best-effort: the daemon sends it before closing the sockets, but a crash or a forced kill sends nothing, so a connection that closes without this event means the daemon went down unexpectedly. Plugins must exit when their connection closes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": ["user_quit", "terminated", "error"],
+          "description": "Why the daemon is stopping. 'user_quit': the user chose to quit KeyForge from the daemon's own UI (the tray's Quit); the GUI should close too. 'terminated': something outside the daemon asked it to stop (a termination signal, the service manager, the OS ending the session or shutting down, or a client stopping or restarting it); the GUI stays open. 'error': the daemon hit a fatal error it could still report before exiting; the GUI stays open."
+        }
+      }
+    }
+  }
+}

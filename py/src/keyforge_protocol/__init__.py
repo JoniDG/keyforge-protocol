@@ -159,6 +159,10 @@ from .events.active_profile_changed_schema import (
     Data as ActiveProfileChangedData,
     EventActiveProfileChanged,
 )
+from .events.daemon_stopping_schema import (
+    Data as DaemonStoppingData,
+    EventDaemonStopping,
+)
 from .events.input_schema import (
     EventInput,
 )
@@ -188,6 +192,7 @@ __all__ = [
     "Color",
     "CreateProfileParams",
     "CreateProfileResult",
+    "DaemonStoppingData",
     "DelayActionParams",
     "DeleteProfileParams",
     "DeleteProfileResult",
@@ -202,6 +207,7 @@ __all__ = [
     "Event",
     "EventActionInvoked",
     "EventActiveProfileChanged",
+    "EventDaemonStopping",
     "EventInput",
     "ExportProfileParams",
     "ExportProfileResult",

@@ -237,6 +237,16 @@ Para el aviso de Input Monitoring de macOS: la GUI muestra qué programa necesit
 - Los tres valores entran desde ya (son los de `IOHIDAccessType`): sumar uno después rompe a un consumidor Go viejo (mismo criterio que `starting` en `InstalledPlugin`).
 - Nombre genérico (decisión del owner) para sumar más estado del daemon como campos opcionales, sin agregar métodos. Un plugin no lo puede llamar (la allowlist sigue siendo solo `hello`).
 
+## Apagado del daemon: evento `daemon_stopping` (DECIDIDO 2026-11-04)
+
+Para que "Quit KeyForge" del tray cierre KeyForge entero: la GUI tiene que distinguir "el usuario pidió salir" de "me bajaron" y de "se cayó".
+
+- **`daemon_stopping {reason}`**, `reason` = `user_quit|terminated|error`. `user_quit`: Quit desde la UI propia del daemon (tray) → la GUI se cierra. `terminated`: un pedido de afuera (señal de terminación, launchd, fin de sesión/apagado del SO, o la propia GUI bajándolo o reiniciándolo, ej. "Don't start at login" en macOS o el reinicio por Input Monitoring) → la GUI queda abierta. `error`: apagado fatal que el daemon todavía puede avisar → la GUI queda abierta. Los tres entran ahora (decisión del owner, `error` incluido aunque core todavía no lo emita): sumar un valor después rompe a un consumidor Go viejo.
+- **Best-effort:** el daemon lo manda antes de cerrar los sockets. Un crash o kill forzado no manda nada, así que conexión cerrada **sin** el evento = el daemon se cayó.
+- **Destinatarios:** todas las conexiones menos las de plugins (igual que los demás broadcasts). Los plugins ya tienen que terminar al cerrarse su conexión.
+- **Evento y no close code de WebSocket** (ej. `4000`): un close code queda fuera del contrato tipado. Tampoco se deduce del exit code o de `runtime.json`: la GUI no siempre es el padre del daemon y un exit 0 no distingue Quit de SIGTERM.
+- Aditivo (0.21.0): el envelope acepta cualquier `name` snake_case, así que un cliente viejo que ignore eventos desconocidos no se entera. Como red, desktop además re-hace Ensure al reactivarse o ante una segunda instancia (cubre un daemon viejo que no lo emite).
+
 ## Tipos Python (DECIDIDO 2026-10-10)
 
 Paquete PyPI `jdg-keyforge-protocol` (import `keyforge_protocol`) para el SDK Python. Mismo modelo que `ts/`: checked in, solo tipos, versión alineada con Go/TS y tag `py/vX.Y.Z`. Arrancó en **0.16.1** (el contrato vigente) sin bumpear Go/TS, porque para ellos no cambiaba nada.
