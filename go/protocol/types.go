@@ -443,6 +443,95 @@ func (j *CreateProfileSchemaJson) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+// Pushed by the daemon to every client connection except plugins right before a
+// controlled shutdown, so a client can tell a requested stop from a crash.
+// Best-effort: the daemon sends it before closing the sockets, but a crash or a
+// forced kill sends nothing, so a connection that closes without this event means
+// the daemon went down unexpectedly. Plugins must exit when their connection
+// closes.
+type DaemonStoppingSchemaJson struct {
+	// Data corresponds to the JSON schema field "data".
+	Data DaemonStoppingSchemaJsonData `json:"data" yaml:"data" mapstructure:"data"`
+}
+
+type DaemonStoppingSchemaJsonData struct {
+	// Why the daemon is stopping. 'user_quit': the user chose to quit KeyForge from
+	// the daemon's own UI (the tray's Quit); the GUI should close too. 'terminated':
+	// something outside the daemon asked it to stop (a termination signal, the
+	// service manager, the OS ending the session or shutting down, or a client
+	// stopping or restarting it); the GUI stays open. 'error': the daemon hit a fatal
+	// error it could still report before exiting; the GUI stays open.
+	Reason DaemonStoppingSchemaJsonDataReason `json:"reason" yaml:"reason" mapstructure:"reason"`
+}
+
+type DaemonStoppingSchemaJsonDataReason string
+
+const DaemonStoppingSchemaJsonDataReasonError DaemonStoppingSchemaJsonDataReason = "error"
+const DaemonStoppingSchemaJsonDataReasonTerminated DaemonStoppingSchemaJsonDataReason = "terminated"
+const DaemonStoppingSchemaJsonDataReasonUserQuit DaemonStoppingSchemaJsonDataReason = "user_quit"
+
+var enumValues_DaemonStoppingSchemaJsonDataReason = []interface{}{
+	"user_quit",
+	"terminated",
+	"error",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DaemonStoppingSchemaJsonDataReason) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_DaemonStoppingSchemaJsonDataReason {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_DaemonStoppingSchemaJsonDataReason, v)
+	}
+	*j = DaemonStoppingSchemaJsonDataReason(v)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DaemonStoppingSchemaJsonData) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["reason"]; raw != nil && !ok {
+		return fmt.Errorf("field reason in DaemonStoppingSchemaJsonData: required")
+	}
+	type Plain DaemonStoppingSchemaJsonData
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = DaemonStoppingSchemaJsonData(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *DaemonStoppingSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["data"]; raw != nil && !ok {
+		return fmt.Errorf("field data in DaemonStoppingSchemaJson: required")
+	}
+	type Plain DaemonStoppingSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = DaemonStoppingSchemaJson(plain)
+	return nil
+}
+
 // Params for the built-in 'delay' action: waits for the given duration. Mainly
 // useful as a step inside a macro.
 type DelayActionParams struct {

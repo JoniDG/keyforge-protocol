@@ -28,4 +28,5 @@ export type { MethodUninstallPlugin } from './methods/uninstall_plugin.js';
 
 export type { EventActionInvoked } from './events/action_invoked.js';
 export type { EventActiveProfileChanged } from './events/active_profile_changed.js';
+export type { EventDaemonStopping } from './events/daemon_stopping.js';
 export type { EventInput } from './events/input.js';
