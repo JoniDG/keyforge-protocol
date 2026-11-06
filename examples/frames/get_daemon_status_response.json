@@ -4,6 +4,7 @@
   "ok": true,
   "data": {
     "executable_path": "/Applications/KeyForge.app/Contents/MacOS/keyforged",
-    "input_monitoring": "granted"
+    "input_monitoring": "granted",
+    "accessibility": "denied"
   }
 }
