@@ -1,4 +1,4 @@
-.PHONY: help generate generate-go generate-ts generate-ts-barrel generate-py check-py build-py build-ts validate validate-frames validate-methods validate-events validate-files clean check-tools
+.PHONY: help generate generate-go generate-ts generate-ts-barrel generate-py check-py build-py build-ts validate validate-frames validate-methods validate-events validate-files clean check-tools publish-npm publish-py
 
 SCHEMAS_DIR := schemas
 EXAMPLES_DIR := examples
@@ -14,6 +14,7 @@ PY_OUT      := py/src/keyforge_protocol
 # PEP 728 `closed=` only since 3.15.
 PY_GEN_PYTHON := 3.14
 PY_PYTHON     := 3.15
+PY_VERSION    := $(shell sed -n 's/^version = "\(.*\)"$$/\1/p' py/pyproject.toml)
 
 # Go-installed binaries (go-jsonschema) live in $GOPATH/bin which is not always
 # on the user's PATH. Prepend it so make recipes always find them.
@@ -100,7 +101,9 @@ check-py: ## Type-check the Python package with mypy --strict and run its contra
 	cd py && uvx --python $(PY_PYTHON) mypy
 	cd py && PYTHONPATH=src uv run --no-project --python $(PY_PYTHON) python -m unittest discover -s tests
 
+# dist/ is emptied first so a later `uv publish` never picks up an older build.
 build-py: ## Build the Python sdist + wheel into py/dist/
+	rm -rf py/dist
 	cd py && uv build
 
 build-ts: ## Install + build the TS package (emits .d.ts and .js into ts/dist/)
@@ -138,6 +141,15 @@ validate-files: ## Validate on-disk file examples in examples/files/ against the
 		printf '{"$$ref":"https://keyforge.dev/schemas/v1/common.schema.json#/$$defs/%s"}' $$def > $$tmp/$$def.json; \
 		ajv validate -s $$tmp/$$def.json -d $$ex --spec=draft2020 -r $(COMMON_SCHEMA) || exit 1; \
 	done
+
+publish-npm: ## Publish the npm package (only from a clean, tagged main)
+	bash scripts/publish_check.sh npm
+	cd ts && npm ci && npm publish
+
+publish-py: ## Publish the PyPI package (only from a clean, tagged main)
+	bash scripts/publish_check.sh py
+	$(MAKE) build-py
+	cd py && uv publish dist/jdg_keyforge_protocol-$(PY_VERSION).tar.gz dist/jdg_keyforge_protocol-$(PY_VERSION)-py3-none-any.whl
 
 clean: ## Remove TS and Python package build output
 	rm -rf ts/dist py/dist
