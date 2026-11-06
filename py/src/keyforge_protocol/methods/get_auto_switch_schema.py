@@ -16,11 +16,12 @@ class Result(TypedDict, closed=True):
     """
     App-to-profile rules currently configured.
     """
+    unmatched: common_schema.AutoSwitchUnmatched
 
 
 class MethodGetAutoSwitch(TypedDict, closed=True):
     """
-    Returns the current auto-switch configuration: the master toggle and the full set of app-to-profile rules. The daemon uses these to switch the active profile based on the foreground application.
+    Returns the current auto-switch configuration: the master toggle, the behavior for apps without a rule and the full set of app-to-profile rules. The daemon uses these to switch the active profile based on the foreground application.
     """
 
     params: JsonObject

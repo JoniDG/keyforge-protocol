@@ -4,6 +4,7 @@
   "ok": true,
   "data": {
     "enabled": true,
+    "unmatched": "restore",
     "rules": [
       {
         "app": "com.spotify.client",
