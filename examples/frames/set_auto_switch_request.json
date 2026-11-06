@@ -4,6 +4,7 @@
   "method": "set_auto_switch",
   "params": {
     "enabled": true,
+    "unmatched": "restore",
     "rules": [
       {
         "app": "com.spotify.client",

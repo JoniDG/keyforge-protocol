@@ -14,6 +14,7 @@
   },
   "result": {
     "enabled": true,
+    "unmatched": "keep",
     "rules": [
       {
         "app": "com.spotify.client",

@@ -2,6 +2,7 @@
   "params": {},
   "result": {
     "enabled": true,
+    "unmatched": "restore",
     "rules": [
       {
         "app": "com.spotify.client",

@@ -6,7 +6,12 @@
  */
 
 /**
- * Replaces the entire auto-switch configuration in one shot (bulk set, not per-rule CRUD): the master toggle and the full rule set. The result echoes the persisted state. The daemon rejects the whole request with error code PROFILE_NOT_FOUND if any rule's profile_id does not exist; nothing is persisted in that case.
+ * What the daemon does when the frontmost app changes to one that matches no rule. 'keep' leaves the active profile as it is. 'restore' returns to the base profile, which the daemon tracks only in this mode: when a rule acts and no base is recorded, the profile active at that moment becomes the base. Moving between apps that have rules does not change it, and a manual switch (set_active_profile, or a switch_profile, next_profile or previous_profile action) replaces it, so leaving the app keeps what the user chose. Switching to an app without a rule activates the base and clears it. A set_auto_switch with enabled false or unmatched 'keep' discards the base. If the base profile is deleted, the base becomes the first profile in list_profiles order. The base persists across daemon restarts; at startup the daemon handles the frontmost app as an app change: with a stored base, an app with a rule keeps it and an app without one restores it; with no stored base, a rule records the profile active before applying it.
+ */
+export type AutoSwitchUnmatched = "keep" | "restore";
+
+/**
+ * Replaces the entire auto-switch configuration in one shot (bulk set, not per-rule CRUD): the master toggle, the behavior for apps without a rule and the full rule set. An absent unmatched means 'keep', so a request that omits it resets the behavior to 'keep'. The result echoes the persisted state. The daemon rejects the whole request with error code PROFILE_NOT_FOUND if any rule's profile_id does not exist; nothing is persisted in that case.
  */
 export interface MethodSetAutoSwitch {
   params: {
@@ -18,6 +23,7 @@ export interface MethodSetAutoSwitch {
      * Full replacement set of app-to-profile rules. Any previously stored rules are discarded.
      */
     rules: AutoSwitchRule[];
+    unmatched?: AutoSwitchUnmatched;
   };
   result: {
     /**
@@ -28,14 +34,15 @@ export interface MethodSetAutoSwitch {
      * Rules as persisted. Echoes the requested set on success.
      */
     rules: AutoSwitchRule[];
+    unmatched: AutoSwitchUnmatched;
   };
 }
 /**
- * Maps a foreground application to the profile that becomes active when that app becomes frontmost. The daemon applies a rule only when the frontmost app changes (and once at startup for the app frontmost then), not continuously while the app stays in front: a manual switch (set_active_profile, or a switch_profile, next_profile or previous_profile action) holds until the frontmost app changes again. When the frontmost app matches no rule, the active profile is left unchanged (sticky behavior); there is no fallback profile.
+ * Maps a foreground application to the profile that becomes active when that app becomes frontmost. The daemon applies a rule only when the frontmost app changes (and once at startup for the app frontmost then), not continuously while the app stays in front: a manual switch (set_active_profile, or a switch_profile, next_profile or previous_profile action) holds until the frontmost app changes again. What happens when the frontmost app matches no rule is set by AutoSwitchUnmatched.
  */
 export interface AutoSwitchRule {
   /**
-   * OS-native application identifier: bundle id on macOS, executable name on Linux/Windows. Opaque string, not portable across OSes; the daemon matches it verbatim against the frontmost app.
+   * OS-native application identifier: bundle id on macOS, executable name on Linux/Windows. Opaque string, not portable across OSes. The daemon compares it with the frontmost app ignoring case on Windows (where Notepad.exe and notepad.exe name the same file) and exactly on macOS and Linux.
    */
   app: string;
   /**

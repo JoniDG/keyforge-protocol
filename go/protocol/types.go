@@ -198,7 +198,8 @@ func (j *Action) UnmarshalJSON(value []byte) error {
 }
 
 // Pushed by the daemon whenever the active profile changes on the server's own
-// initiative (auto-switch by foreground app, or a switch_profile, next_profile or
+// initiative (auto-switch by foreground app, including restoring the base profile
+// when unmatched is 'restore', or a switch_profile, next_profile or
 // previous_profile action). Lets clients stay in sync without polling. Not emitted
 // in response to a client's set_active_profile request, which already returns the
 // new id.
@@ -256,12 +257,13 @@ func (j *ActiveProfileChangedSchemaJson) UnmarshalJSON(value []byte) error {
 // (and once at startup for the app frontmost then), not continuously while the app
 // stays in front: a manual switch (set_active_profile, or a switch_profile,
 // next_profile or previous_profile action) holds until the frontmost app changes
-// again. When the frontmost app matches no rule, the active profile is left
-// unchanged (sticky behavior); there is no fallback profile.
+// again. What happens when the frontmost app matches no rule is set by
+// AutoSwitchUnmatched.
 type AutoSwitchRule struct {
 	// OS-native application identifier: bundle id on macOS, executable name on
-	// Linux/Windows. Opaque string, not portable across OSes; the daemon matches it
-	// verbatim against the frontmost app.
+	// Linux/Windows. Opaque string, not portable across OSes. The daemon compares it
+	// with the frontmost app ignoring case on Windows (where Notepad.exe and
+	// notepad.exe name the same file) and exactly on macOS and Linux.
 	App string `json:"app" yaml:"app" mapstructure:"app"`
 
 	// Identifier of the profile to activate when this app becomes frontmost. Must
@@ -295,6 +297,36 @@ func (j *AutoSwitchRule) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "profile_id", 1)
 	}
 	*j = AutoSwitchRule(plain)
+	return nil
+}
+
+type AutoSwitchUnmatched string
+
+const AutoSwitchUnmatchedKeep AutoSwitchUnmatched = "keep"
+const AutoSwitchUnmatchedRestore AutoSwitchUnmatched = "restore"
+
+var enumValues_AutoSwitchUnmatched = []interface{}{
+	"keep",
+	"restore",
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *AutoSwitchUnmatched) UnmarshalJSON(value []byte) error {
+	var v string
+	if err := json.Unmarshal(value, &v); err != nil {
+		return err
+	}
+	var ok bool
+	for _, expected := range enumValues_AutoSwitchUnmatched {
+		if reflect.DeepEqual(v, expected) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_AutoSwitchUnmatched, v)
+	}
+	*j = AutoSwitchUnmatched(v)
 	return nil
 }
 
@@ -1101,9 +1133,9 @@ func (j *ExportedProfile) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
-// Returns the current auto-switch configuration: the master toggle and the full
-// set of app-to-profile rules. The daemon uses these to switch the active profile
-// based on the foreground application.
+// Returns the current auto-switch configuration: the master toggle, the behavior
+// for apps without a rule and the full set of app-to-profile rules. The daemon
+// uses these to switch the active profile based on the foreground application.
 type GetAutoSwitchSchemaJson struct {
 	// No parameters in v1.
 	Params GetAutoSwitchSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -1122,6 +1154,9 @@ type GetAutoSwitchSchemaJsonResult struct {
 
 	// App-to-profile rules currently configured.
 	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+
+	// Unmatched corresponds to the JSON schema field "unmatched".
+	Unmatched AutoSwitchUnmatched `json:"unmatched" yaml:"unmatched" mapstructure:"unmatched"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -1135,6 +1170,9 @@ func (j *GetAutoSwitchSchemaJsonResult) UnmarshalJSON(value []byte) error {
 	}
 	if _, ok := raw["rules"]; raw != nil && !ok {
 		return fmt.Errorf("field rules in GetAutoSwitchSchemaJsonResult: required")
+	}
+	if _, ok := raw["unmatched"]; raw != nil && !ok {
+		return fmt.Errorf("field unmatched in GetAutoSwitchSchemaJsonResult: required")
 	}
 	type Plain GetAutoSwitchSchemaJsonResult
 	var plain Plain
@@ -3312,10 +3350,11 @@ func (j *SetActiveProfileSchemaJson) UnmarshalJSON(value []byte) error {
 }
 
 // Replaces the entire auto-switch configuration in one shot (bulk set, not
-// per-rule CRUD): the master toggle and the full rule set. The result echoes the
-// persisted state. The daemon rejects the whole request with error code
-// PROFILE_NOT_FOUND if any rule's profile_id does not exist; nothing is persisted
-// in that case.
+// per-rule CRUD): the master toggle, the behavior for apps without a rule and the
+// full rule set. An absent unmatched means 'keep', so a request that omits it
+// resets the behavior to 'keep'. The result echoes the persisted state. The daemon
+// rejects the whole request with error code PROFILE_NOT_FOUND if any rule's
+// profile_id does not exist; nothing is persisted in that case.
 type SetAutoSwitchSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetAutoSwitchSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
@@ -3332,6 +3371,9 @@ type SetAutoSwitchSchemaJsonParams struct {
 	// Full replacement set of app-to-profile rules. Any previously stored rules are
 	// discarded.
 	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+
+	// Unmatched corresponds to the JSON schema field "unmatched".
+	Unmatched *AutoSwitchUnmatched `json:"unmatched,omitempty,omitzero" yaml:"unmatched,omitempty" mapstructure:"unmatched,omitempty"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -3361,6 +3403,9 @@ type SetAutoSwitchSchemaJsonResult struct {
 
 	// Rules as persisted. Echoes the requested set on success.
 	Rules []AutoSwitchRule `json:"rules" yaml:"rules" mapstructure:"rules"`
+
+	// Unmatched corresponds to the JSON schema field "unmatched".
+	Unmatched AutoSwitchUnmatched `json:"unmatched" yaml:"unmatched" mapstructure:"unmatched"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -3374,6 +3419,9 @@ func (j *SetAutoSwitchSchemaJsonResult) UnmarshalJSON(value []byte) error {
 	}
 	if _, ok := raw["rules"]; raw != nil && !ok {
 		return fmt.Errorf("field rules in SetAutoSwitchSchemaJsonResult: required")
+	}
+	if _, ok := raw["unmatched"]; raw != nil && !ok {
+		return fmt.Errorf("field unmatched in SetAutoSwitchSchemaJsonResult: required")
 	}
 	type Plain SetAutoSwitchSchemaJsonResult
 	var plain Plain

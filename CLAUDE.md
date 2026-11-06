@@ -227,6 +227,17 @@ La distribución física viaja en el contrato para que la GUI pueda dibujar cual
 - **`set_device_rotation {device_id, rotation} → {}`** (ack vacío, como `set_input_color`): persiste por `device_id` y `list_devices` la expone. Rechaza `device_id` desconocidos; los códigos de error los define `keyforge-core`.
 - **Gotcha del generador Go:** si `common.schema.json` se procesa primero, `go-jsonschema` duplica un `$def` enum **entero** referenciado desde otro archivo (`DeviceRotation_1`). Por eso el `Makefile` le pasa métodos y eventos antes que `common`. Además, un `$ref` con `description` al lado hace que `json2ts` emita un alias duplicado (`Color1`): para `$def`s compartidos, la descripción va en el `$def`.
 
+## Auto-switch: volver al perfil base (DECIDIDO 2026-11-06)
+
+Para usar un perfil solo mientras una app está al frente (ej: uno de VS Code): al pasar a una app sin regla, volver al perfil de antes.
+
+- **`$def AutoSwitchUnmatched`** = `keep|restore` (decisión del owner: enum y no boolean, se lee solo y deja lugar a otro modo). Campo `unmatched` en `set_auto_switch`: opcional en `params` (ausente = `keep`; con el reemplazo total, un set que no lo manda vuelve a `keep`) y requerido en los `result` de `get`/`set` (solo los lee desktop, que sale con core; los plugins no pueden llamar a estos métodos). Sumar un valor después rompe a un consumidor Go viejo, como con `input`/`path`.
+- **Perfil base, solo con `restore`:** cuando actúa una regla y no hay base, el daemon guarda como base el perfil activo en ese momento. Encadenar apps con regla no lo cambia; un cambio manual (`set_active_profile`, `switch_profile`, `next/previous_profile`) lo **reemplaza**, así salir de la app respeta lo que eligió el usuario. Al pasar a una app sin regla, el daemon activa el base y lo borra. Con `keep` no se registra base, y un `set_auto_switch` con `enabled: false` o `unmatched: keep` descarta el que hubiera (pasar a `restore` con la app de la regla al frente no vuelve a nada hasta que actúe otra regla).
+- **Perfil base borrado** → pasa a ser el primero de `list_profiles` (decisión del owner: que el perfil de la regla no quede pegado fuera de su app).
+- **Persiste al reiniciar el daemon** (decisión del owner). A diferencia del estado de `toggle`/variables, el base es una elección del usuario como el perfil activo, y sin persistirlo un reinicio con la app de la regla al frente dejaría ese perfil para siempre. Al arrancar, el daemon trata la app al frente como un cambio de app: con un base guardado, una app con regla lo mantiene y una sin regla lo restaura; sin base, una regla registra el activo de antes de aplicarla. Dónde se guarda lo decide `keyforge-core`.
+- **Windows compara `AutoSwitchRule.app` sin mayúsculas** (`Notepad.exe` = `notepad.exe`, mismo archivo); macOS y Linux siguen exactos. Solo descripción.
+- `active_profile_changed` también se emite al restaurar el base. Todo esto lo aplica `keyforge-core`; el schema solo lo describe. Fuera de v1 (aditivo): exponer el base (`base_profile_id`) para que la GUI muestre a qué perfil vuelve.
+
 ## Estado del daemon: `get_daemon_status` (DECIDIDO 2026-10-28)
 
 Para el aviso de Input Monitoring de macOS: la GUI muestra qué programa necesita el permiso y si el daemon que corre lo tiene.
