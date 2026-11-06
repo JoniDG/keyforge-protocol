@@ -3304,9 +3304,10 @@ func (j *SendKeysActionParams) UnmarshalJSON(value []byte) error {
 }
 
 // Sets which profile is active. The active profile is the one the binding editor
-// reads and writes; switching it swaps the live binding set. The switch holds
-// until the frontmost app changes and an auto-switch rule matches it (see
-// AutoSwitchRule).
+// reads and writes; switching it swaps the live binding set. Activating the
+// profile that is already active changes nothing but repaints its colors, dropping
+// the ones a non-persistent set_color painted. The switch holds until the
+// frontmost app changes and an auto-switch rule matches it (see AutoSwitchRule).
 type SetActiveProfileSchemaJson struct {
 	// Params corresponds to the JSON schema field "params".
 	Params SetActiveProfileSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
