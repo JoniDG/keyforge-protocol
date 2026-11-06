@@ -22,7 +22,7 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 
 [ -z "$(git status --porcelain)" ] || fail "working tree has uncommitted changes"
 
-git fetch -q origin main --tags
+git fetch -q origin main --tags || fail "git fetch failed (no network, or a local tag differs from origin?)"
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || fail "main is not at origin/main; run git pull"
 
 ts_version="$(node -p "require('./ts/package.json').version")"
@@ -34,11 +34,16 @@ py_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' py/pyproject.toml)"
 version="$ts_version"
 
 tag="$tag_prefix/v$version"
-[ -n "$(git tag --points-at HEAD --list "$tag")" ] || fail "HEAD is not tagged $tag; tag the merge commit first"
+tag_sha="$(git rev-parse -q --verify "refs/tags/$tag^{commit}")" || fail "tag $tag does not exist; tag the merge commit first"
 # The peeled ref (^{}) is the commit an annotated tag points at.
-remote_sha="$(git ls-remote origin "refs/tags/$tag^{}" | cut -f1)"
+remote_sha="$(git ls-remote origin "refs/tags/$tag^{}" | cut -f1)" || fail "could not query origin for $tag"
 [ -n "$remote_sha" ] || fail "tag $tag is not pushed to origin"
-[ "$remote_sha" = "$(git rev-parse HEAD)" ] || fail "tag $tag on origin points at $remote_sha, not HEAD"
+[ "$remote_sha" = "$tag_sha" ] || fail "tag $tag on origin points at $remote_sha, but locally at $tag_sha"
+# main may have moved past the tag (e.g. a docs PR merged before publishing).
+# That is fine as long as the packages (and the Makefile recipes that build
+# them) are byte-for-byte what was tagged.
+git merge-base --is-ancestor "$tag_sha" HEAD || fail "tag $tag is not on main"
+git diff --quiet "$tag_sha" HEAD -- ts py Makefile || fail "ts/, py/ or the Makefile changed since $tag; cut a new version instead"
 
 case "$registry" in
   npm)
@@ -62,4 +67,4 @@ case "$registry" in
     ;;
 esac
 
-echo "✓ publish check: $registry $version from main at $(git rev-parse --short HEAD) ($tag)"
+echo "✓ publish check: $registry $version from main at $(git rev-parse --short HEAD) ($tag at $(git rev-parse --short "$tag_sha"))"
