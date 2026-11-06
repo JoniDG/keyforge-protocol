@@ -39,7 +39,8 @@ py/                            → paquete PyPI publicado (CHECKED IN, no gitign
   tests/test_contract.py       → literales tipados == ejemplos de examples/ (mypy --strict + unittest)
   dist/                        → sdist + wheel de `uv build` (gitignored)
 scripts/py_postprocess.py      → post-proceso del output de datamodel-codegen (ver "Tipos Python")
-Makefile                       → comandos: generate (+ generate-py), build-ts, check-py, build-py, validate (+ validate-files), clean
+scripts/publish_check.sh       → chequeo previo de make publish-npm / publish-py
+Makefile                       → comandos: generate (+ generate-py), build-ts, check-py, build-py, validate (+ validate-files), clean, publish-npm, publish-py
 ```
 
 ## Envelope (wire protocol — DECIDIDO 2026-05-04)
@@ -285,6 +286,8 @@ make build-py    # uv build → py/dist/ (sdist + wheel)
 make validate    # valida los archivos en examples/ contra sus schemas (incluye validate-files:
                  # examples/files/<snake>.json contra common#/$defs/<Pascal>)
 make clean       # borra ts/dist/ y py/dist/
+make publish-npm # publica en npm (solo desde main limpio con el tag ts/vX.Y.Z pusheado; lo corre el owner)
+make publish-py  # rebuildea y publica en PyPI (mismo chequeo con py/vX.Y.Z; lo corre el owner)
 ```
 
 **Herramientas requeridas (instalar bajo demanda):**
@@ -305,7 +308,7 @@ npm install -g json-schema-to-typescript ajv-cli
 - **Flujo de cierre tras el merge (orden estricto).** Este repo publica a npm y a PyPI, así que el cierre de una unidad de trabajo tiene un paso extra que la regla cross-repo de `KEYFORGE-PLAN.md` no contempla. Cuando el owner confirme que el PR fue mergeado:
   1. Limpieza post-merge de la rama (`git checkout main && git pull --prune` + `git branch -d/-D <rama>`).
   2. Crear y pushear los tags anotados `go/vX.Y.Z`, `ts/vX.Y.Z` y `py/vX.Y.Z` sobre el commit de merge.
-  3. **Esperar a que el owner publique la nueva versión en npm y en PyPI** (lo corre él — npm: `cd ts && npm ci && npm publish`, el login es interactivo; PyPI: `cd py && uv build && uv publish` con su token). Ningún registry está autenticado en esta sesión; ofrecer `npm pack --dry-run` / `uv build` para verificar los paquetes, pero **no** dar por cerrada la unidad hasta que el owner confirme los publish.
+  3. **Esperar a que el owner publique la nueva versión en npm y en PyPI** (lo corre él, **siempre con los targets del `Makefile`** y desde la ruta absoluta del repo: `cd /Users/jonidg/proyectos/keyforge/keyforge-protocol && git checkout main && git pull && make publish-npm` (login interactivo) y `... && make publish-py` (con su token); nunca `npm publish`/`uv publish` a mano). Los dos targets corren `scripts/publish_check.sh`, que frena si no está en `main` limpio y al día con `origin`, si `ts/` y `py/` no tienen la misma versión, si `HEAD` no tiene su tag `ts/`/`py/vX.Y.Z` pusheado o si la versión ya está en el registry; `publish-py` rebuildea `py/dist/` desde cero y sube solo los dos archivos de esa versión. Motivo (2026-11-06): un `npm publish` corrido parado en la rama del PR siguiente publicó la 0.23.0 en lugar de la 0.22.0, y un `uv publish` subió de una las dos versiones que quedaban en `py/dist/`. Ningún registry está autenticado en esta sesión; ofrecer `npm pack --dry-run` / `uv build` para verificar los paquetes, pero **no** dar por cerrada la unidad hasta que el owner confirme los publish.
   4. **Recién después del publish confirmado**, actualizar `KEYFORGE-PLAN.md` (fila de `keyforge-protocol`, checkboxes de la fase, Work log con fecha, cabecera). Actualizar el plan antes del publish corrompe el estado: deja registrado un `@jdg-keyforge/protocol X.Y.Z` (o `jdg-keyforge-protocol`) que todavía no existe en el registry y que los repos consumidores no pueden instalar.
   Si una versión no necesita publish a npm o a PyPI (cambio que no toca ese paquete), saltear esa parte del paso 3 y decirlo explícitamente.
 
