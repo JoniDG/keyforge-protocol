@@ -257,8 +257,11 @@ func (j *ActiveProfileChangedSchemaJson) UnmarshalJSON(value []byte) error {
 // (and once at startup for the app frontmost then), not continuously while the app
 // stays in front: a manual switch (set_active_profile, or a switch_profile,
 // next_profile or previous_profile action) holds until the frontmost app changes
-// again. What happens when the frontmost app matches no rule is set by
-// AutoSwitchUnmatched.
+// again. KeyForge itself never counts as the frontmost app: bringing it to the
+// front is not an app change, so editing a profile in KeyForge neither applies a
+// rule nor restores the base, a rule for KeyForge never fires, and at startup with
+// KeyForge in front nothing is applied until another app comes to the front. What
+// happens when the frontmost app matches no rule is set by AutoSwitchUnmatched.
 type AutoSwitchRule struct {
 	// OS-native application identifier: bundle id on macOS, executable name on
 	// Linux/Windows. Opaque string, not portable across OSes. The daemon compares it
@@ -687,6 +690,15 @@ func (j *DeleteProfileSchemaJson) UnmarshalJSON(value []byte) error {
 
 // A HID device known to the daemon. Returned by list_devices.
 type Device struct {
+	// Whether the device is present on the HID bus right now. Devices the daemon
+	// knows from earlier sessions are still listed while unplugged, with false. It
+	// says nothing about whether the daemon may read the device: OS permissions are
+	// reported by get_daemon_status. Absent means true, so a client doesn't flag
+	// every device as unplugged when talking to a daemon that predates this field;
+	// current daemons always send it. Computed per request: it is not part of the
+	// persisted device catalog.
+	Connected *bool `json:"connected,omitempty,omitzero" yaml:"connected,omitempty" mapstructure:"connected,omitempty"`
+
 	// Id corresponds to the JSON schema field "id".
 	Id DeviceID `json:"id" yaml:"id" mapstructure:"id"`
 
@@ -1346,6 +1358,67 @@ func (j *GetDaemonStatusSchemaJson) UnmarshalJSON(value []byte) error {
 		return err
 	}
 	*j = GetDaemonStatusSchemaJson(plain)
+	return nil
+}
+
+// Returns the frontmost application ignoring KeyForge itself, so a client can
+// offer it when creating an auto-switch rule: while the user clicks a button in
+// KeyForge, KeyForge is the app in front, so the useful answer is the last other
+// app. The daemon keeps that app in memory and tracks it whether or not
+// auto-switch is enabled. It may not be the app the user has in mind (e.g. the
+// file manager KeyForge was opened from), so clients should let the user review it
+// before saving a rule.
+type GetFrontmostAppSchemaJson struct {
+	// No parameters in v1.
+	Params GetFrontmostAppSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Result corresponds to the JSON schema field "result".
+	Result GetFrontmostAppSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+// No parameters in v1.
+type GetFrontmostAppSchemaJsonParams map[string]interface{}
+
+type GetFrontmostAppSchemaJsonResult struct {
+	// OS-native application identifier, in the same format as AutoSwitchRule.app:
+	// bundle id on macOS, executable name on Linux/Windows. Absent when the daemon
+	// knows no app other than KeyForge, for example right after it started or when
+	// frontmost-app detection is unavailable on this system.
+	App *string `json:"app,omitempty,omitzero" yaml:"app,omitempty" mapstructure:"app,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetFrontmostAppSchemaJsonResult) UnmarshalJSON(value []byte) error {
+	type Plain GetFrontmostAppSchemaJsonResult
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.App != nil && utf8.RuneCountInString(string(*plain.App)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "app", 1)
+	}
+	*j = GetFrontmostAppSchemaJsonResult(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *GetFrontmostAppSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in GetFrontmostAppSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in GetFrontmostAppSchemaJson: required")
+	}
+	type Plain GetFrontmostAppSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = GetFrontmostAppSchemaJson(plain)
 	return nil
 }
 
@@ -2322,7 +2395,8 @@ type ListDevicesSchemaJson struct {
 type ListDevicesSchemaJsonParams map[string]interface{}
 
 type ListDevicesSchemaJsonResult struct {
-	// All currently enumerated HID devices.
+	// All HID devices known to the daemon, including unplugged ones (see
+	// Device.connected).
 	Devices []Device `json:"devices" yaml:"devices" mapstructure:"devices"`
 }
 
@@ -3275,6 +3349,70 @@ func (j *ResponseOk) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "id", 1)
 	}
 	*j = ResponseOk(plain)
+	return nil
+}
+
+// Restarts an installed plugin without restarting the daemon, whatever its status:
+// a stopped or crashed plugin is launched, and a running or starting one is
+// stopped and launched again (a plugin can be connected and still be stuck).
+// Responds right after spawning, without waiting for the plugin's hello; clients
+// read the outcome with list_plugins, where a failure to start shows up as status
+// 'error'. Bindings are left untouched. An id that is not installed is rejected
+// with PLUGIN_NOT_FOUND.
+type RestartPluginSchemaJson struct {
+	// Params corresponds to the JSON schema field "params".
+	Params RestartPluginSchemaJsonParams `json:"params" yaml:"params" mapstructure:"params"`
+
+	// Empty acknowledgement object. Reserved for future fields without breaking the
+	// schema.
+	Result RestartPluginSchemaJsonResult `json:"result" yaml:"result" mapstructure:"result"`
+}
+
+type RestartPluginSchemaJsonParams struct {
+	// Id of the plugin to restart.
+	Id PluginID `json:"id" yaml:"id" mapstructure:"id"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *RestartPluginSchemaJsonParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["id"]; raw != nil && !ok {
+		return fmt.Errorf("field id in RestartPluginSchemaJsonParams: required")
+	}
+	type Plain RestartPluginSchemaJsonParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = RestartPluginSchemaJsonParams(plain)
+	return nil
+}
+
+// Empty acknowledgement object. Reserved for future fields without breaking the
+// schema.
+type RestartPluginSchemaJsonResult map[string]interface{}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *RestartPluginSchemaJson) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["params"]; raw != nil && !ok {
+		return fmt.Errorf("field params in RestartPluginSchemaJson: required")
+	}
+	if _, ok := raw["result"]; raw != nil && !ok {
+		return fmt.Errorf("field result in RestartPluginSchemaJson: required")
+	}
+	type Plain RestartPluginSchemaJson
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = RestartPluginSchemaJson(plain)
 	return nil
 }
 

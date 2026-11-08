@@ -79,6 +79,10 @@ from .methods.get_daemon_status_schema import (
     MethodGetDaemonStatus,
     Result as GetDaemonStatusResult,
 )
+from .methods.get_frontmost_app_schema import (
+    MethodGetFrontmostApp,
+    Result as GetFrontmostAppResult,
+)
 from .methods.hello_schema import (
     MethodHello,
     Params as HelloParams,
@@ -125,6 +129,10 @@ from .methods.rename_profile_schema import (
     MethodRenameProfile,
     Params as RenameProfileParams,
 )
+from .methods.restart_plugin_schema import (
+    MethodRestartPlugin,
+    Params as RestartPluginParams,
+)
 from .methods.set_active_profile_schema import (
     MethodSetActiveProfile,
     Params as SetActiveProfileParams,
@@ -170,12 +178,14 @@ from .events.input_schema import (
 
 type GetAutoSwitchParams = JsonObject
 type GetDaemonStatusParams = JsonObject
+type GetFrontmostAppParams = JsonObject
 type ListActionsParams = JsonObject
 type ListBindingsParams = JsonObject
 type ListDevicesParams = JsonObject
 type ListPluginsParams = JsonObject
 type ListProfilesParams = JsonObject
 type RenameProfileResult = JsonObject
+type RestartPluginResult = JsonObject
 type SetBindingResult = JsonObject
 type SetDeviceRotationResult = JsonObject
 type SetInputColorResult = JsonObject
@@ -218,6 +228,8 @@ __all__ = [
     "GetAutoSwitchResult",
     "GetDaemonStatusParams",
     "GetDaemonStatusResult",
+    "GetFrontmostAppParams",
+    "GetFrontmostAppResult",
     "HelloParams",
     "HelloResult",
     "ImportProfileParams",
@@ -255,6 +267,7 @@ __all__ = [
     "MethodExportProfile",
     "MethodGetAutoSwitch",
     "MethodGetDaemonStatus",
+    "MethodGetFrontmostApp",
     "MethodHello",
     "MethodImportProfile",
     "MethodInspectPlugin",
@@ -265,6 +278,7 @@ __all__ = [
     "MethodListPlugins",
     "MethodListProfiles",
     "MethodRenameProfile",
+    "MethodRestartPlugin",
     "MethodSetActiveProfile",
     "MethodSetAutoSwitch",
     "MethodSetBinding",
@@ -286,6 +300,8 @@ __all__ = [
     "Response",
     "ResponseErr",
     "ResponseOk",
+    "RestartPluginParams",
+    "RestartPluginResult",
     "SendKeysActionParams",
     "SetActiveProfileParams",
     "SetActiveProfileResult",

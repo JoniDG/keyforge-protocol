@@ -20,7 +20,7 @@
       "properties": {
         "devices": {
           "type": "array",
-          "description": "All currently enumerated HID devices.",
+          "description": "All HID devices known to the daemon, including unplugged ones (see Device.connected).",
           "items": { "$ref": "../common.schema.json#/$defs/Device" }
         }
       }

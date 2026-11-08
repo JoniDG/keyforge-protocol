@@ -21,7 +21,8 @@
           { "id": "encoder_0", "kind": "encoder", "layout": { "x": 5.5, "y": 0 } },
           { "id": "encoder_1", "kind": "encoder", "layout": { "x": 5.5, "y": 1 } }
         ],
-        "rotation": 90
+        "rotation": 90,
+        "connected": true
       }
     ]
   }

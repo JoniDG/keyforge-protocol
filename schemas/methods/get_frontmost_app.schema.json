@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://keyforge.dev/schemas/v1/methods/get_frontmost_app.schema.json",
+  "title": "Method: get_frontmost_app",
+  "description": "Returns the frontmost application ignoring KeyForge itself, so a client can offer it when creating an auto-switch rule: while the user clicks a button in KeyForge, KeyForge is the app in front, so the useful answer is the last other app. The daemon keeps that app in memory and tracks it whether or not auto-switch is enabled. It may not be the app the user has in mind (e.g. the file manager KeyForge was opened from), so clients should let the user review it before saving a rule.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["params", "result"],
+  "properties": {
+    "params": {
+      "type": "object",
+      "description": "No parameters in v1.",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "OS-native application identifier, in the same format as AutoSwitchRule.app: bundle id on macOS, executable name on Linux/Windows. Absent when the daemon knows no app other than KeyForge, for example right after it started or when frontmost-app detection is unavailable on this system.",
+          "minLength": 1,
+          "examples": ["com.microsoft.VSCode", "Code.exe"]
+        }
+      }
+    }
+  }
+}
