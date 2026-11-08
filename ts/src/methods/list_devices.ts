@@ -32,7 +32,7 @@ export interface MethodListDevices {
   params: {};
   result: {
     /**
-     * All currently enumerated HID devices.
+     * All HID devices known to the daemon, including unplugged ones (see Device.connected).
      */
     devices: Device[];
   };
@@ -71,6 +71,10 @@ export interface Device {
    */
   inputs: Input[];
   rotation?: DeviceRotation;
+  /**
+   * Whether the device is present on the HID bus right now. Devices the daemon knows from earlier sessions are still listed while unplugged, with false. It says nothing about whether the daemon may read the device: OS permissions are reported by get_daemon_status. Absent means true, so a client doesn't flag every device as unplugged when talking to a daemon that predates this field; current daemons always send it. Computed per request: it is not part of the persisted device catalog.
+   */
+  connected?: boolean;
 }
 /**
  * A single physical input exposed by a device (a key or an encoder).

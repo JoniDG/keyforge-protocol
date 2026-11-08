@@ -111,7 +111,7 @@ How the daemon runs an installed plugin and talks to it:
 
 ### Installing plugins
 
-Clients manage plugins through four methods. The daemon does all filesystem work; the client only passes the path of the package on the daemon host.
+Clients manage plugins through five methods. The daemon does all filesystem work; the client only passes the path of the package on the daemon host.
 
 | Method | Params → Result | Behavior |
 |---|---|---|
@@ -119,6 +119,7 @@ Clients manage plugins through four methods. The daemon does all filesystem work
 | `install_plugin` | `{ path }` → `{ plugin, previous_version? }` | Validates, extracts into `<config dir>/plugins/<id>/` and starts the plugin. An already-installed id is **replaced** (upgrade). Responds right after spawning (status normally `starting`). |
 | `list_plugins` | `{}` → `{ plugins }` | Every installed plugin as `InstalledPlugin { manifest, status, error? }`, with `status` one of `starting`, `running`, `stopped`, `error`. |
 | `uninstall_plugin` | `{ id }` → `{}` | Stops the process and deletes the folder. Bindings to its actions are kept (orphaned) and work again if the plugin is reinstalled. |
+| `restart_plugin` | `{ id }` → `{}` | Restarts the plugin without restarting the daemon: launches it if stopped or crashed, stops and relaunches it otherwise. Responds right after spawning; a failure to start shows up in `list_plugins`. An unknown id is rejected with `PLUGIN_NOT_FOUND`. |
 
 Both `inspect_plugin` and `install_plugin` reject a package that has no entrypoint for the daemon host's OS, so a plugin that can't run is never installed.
 
@@ -146,6 +147,11 @@ Clients can draw any device with its physical layout, not just a known model:
 - **Layout.** `Input.layout` is an `InputLayout { x, y, w?, h? }` in key units (1 = one standard key; fractions allowed; `w`/`h` default to 1), the same model as QMK/VIA `info.json`. Coordinates are in the device's **canonical orientation**: origin at the top-left, `y` growing downwards. The shape comes from `kind` (key = rectangle, encoder = circle). If any input of a device lacks a layout, clients fall back to a view without positions (e.g. a list).
 - **Labels.** `Input.label` is a fixed name (e.g. `Enter`, `Play`) shown as-is in any orientation. Without one, clients name inputs by position: numbered per kind in reading order of the current, rotated view (by each input's top-left corner, `y` first, then `x`), so `Key 1` is always the top-left key as the device sits on the desk. Without a complete layout, inputs are numbered per kind in the order `list_devices` returns them.
 - **Rotation.** `Device.rotation` is `0`, `90`, `180` or `270` degrees clockwise applied to the canonical layout (absent means `0`). It is set with `set_device_rotation { device_id, rotation } → {}` and stored **per device, not per profile**. It is presentation only: bindings and colors stay tied to the input id.
+- **Presence.** `Device.connected` says whether the device is on the HID bus right now; `list_devices` also returns known devices that are unplugged, with `false`. Absent means `true`. There is no change event: clients re-request `list_devices` to refresh.
+
+## Frontmost app
+
+`get_frontmost_app {} → { app? }` returns the frontmost application ignoring KeyForge itself, in the same format as `AutoSwitchRule.app` (bundle id on macOS, executable name on Linux and Windows), so a client can offer "use the frontmost app" when creating a rule. While the user clicks in KeyForge, KeyForge is in front, so the answer is the last other app. `app` is absent when no other app is known (the daemon just started, or detection is unavailable on this system). Auto-switch ignores KeyForge the same way: bringing it to the front is not an app change.
 
 ## Daemon status
 

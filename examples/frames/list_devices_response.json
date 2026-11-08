@@ -23,14 +23,16 @@
           { "id": "encoder_0", "kind": "encoder", "layout": { "x": 5.5, "y": 0 } },
           { "id": "encoder_1", "kind": "encoder", "layout": { "x": 5.5, "y": 1 } }
         ],
-        "rotation": 90
+        "rotation": 90,
+        "connected": true
       },
       {
         "id": "VID_1a86_PID_7523",
         "vendor_id": "1a86",
         "product_id": "7523",
         "path": "IOService:/AppleACPIPlatformExpert/PCI0@0/AppleACPIPCI/XHC1@14/HS02@14200000",
-        "inputs": []
+        "inputs": [],
+        "connected": false
       }
     ]
   }

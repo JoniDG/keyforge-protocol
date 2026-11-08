@@ -10,7 +10,7 @@ from .._json import JsonObject
 class Result(TypedDict, closed=True):
     devices: list[common_schema.Device]
     """
-    All currently enumerated HID devices.
+    All HID devices known to the daemon, including unplugged ones (see Device.connected).
     """
 
 
