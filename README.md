@@ -149,7 +149,7 @@ Clients can draw any device with its physical layout, not just a known model:
 
 ## Daemon status
 
-`get_daemon_status {} → { executable_path, input_monitoring?, accessibility? }` reports what a client needs to help the user grant OS permissions. `executable_path` is the absolute path of the running daemon binary. `input_monitoring` is the daemon's macOS Input Monitoring access (`granted`, `denied` or `unknown` when the user hasn't been asked yet), and it's absent on other platforms. `accessibility` is the daemon's macOS Accessibility access (`granted` or `denied`, from `AXIsProcessTrusted`), needed to send synthetic keystrokes; it's also macOS only. macOS settles Input Monitoring access when the daemon starts, so a permission granted while it runs only shows up (and takes effect) after restarting the daemon.
+`get_daemon_status {} → { executable_path, input_monitoring?, accessibility? }` reports what a client needs to help the user grant OS permissions. `executable_path` is the absolute path of the running daemon binary. `input_monitoring` is the daemon's macOS Input Monitoring access (`granted`, `denied` or `unknown` when the user hasn't been asked yet), and it's absent on other platforms. `accessibility` is the daemon's macOS Accessibility access (`granted` or `denied`, from `AXIsProcessTrusted`), needed to send synthetic keystrokes; it's also macOS only. macOS settles Input Monitoring access when the daemon starts, so a permission granted while it runs only shows up (and takes effect) after restarting the daemon. Accessibility is live: a change shows up on the next call, with no restart.
 
 ## Consuming from Go
 

@@ -1226,8 +1226,10 @@ type GetDaemonStatusSchemaJsonResult struct {
 	// synthetic keyboard events (send_keys); without it they are dropped silently.
 	// Unlike input_monitoring there is no 'unknown': the API cannot tell whether the
 	// user was asked. As with input_monitoring, when the executable lives inside an
-	// .app bundle macOS checks the enclosing app. Present only on macOS; absent on
-	// platforms without this permission.
+	// .app bundle macOS checks the enclosing app. Unlike input_monitoring, it is
+	// live: granting or revoking the permission while the daemon runs shows up (and
+	// takes effect) on the next call, without a restart. Present only on macOS;
+	// absent on platforms without this permission.
 	Accessibility *GetDaemonStatusSchemaJsonResultAccessibility `json:"accessibility,omitempty,omitzero" yaml:"accessibility,omitempty" mapstructure:"accessibility,omitempty"`
 
 	// Absolute path of the running daemon executable, with symlinks resolved: the
