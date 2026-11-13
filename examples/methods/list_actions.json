@@ -5,6 +5,7 @@
       {
         "type": "launch_app",
         "name": "Launch app",
+        "category": "System",
         "params": [
           { "name": "path", "label": "Application path", "type": "path", "required": true, "placeholder": "/System/Applications/Calculator.app", "path_kind": "app" }
         ]
@@ -12,13 +13,23 @@
       {
         "type": "send_keys",
         "name": "Send keys",
+        "category": "System",
         "params": [
           { "name": "keys", "label": "Key combo", "type": "string", "required": true, "placeholder": "Ctrl+Shift+S" }
         ]
       },
       {
+        "type": "open_url",
+        "name": "Open website",
+        "category": "System",
+        "params": [
+          { "name": "url", "label": "URL", "type": "string", "required": true, "placeholder": "https://example.com" }
+        ]
+      },
+      {
         "type": "set_color",
         "name": "Set color",
+        "category": "Lighting",
         "params": [
           { "name": "color", "label": "Color", "type": "color", "required": true },
           { "name": "input_id", "label": "Input", "type": "input", "required": false, "placeholder": "This key (the one that fired)", "input_filter": { "rgb": true } },
@@ -28,6 +39,7 @@
       {
         "type": "switch_profile",
         "name": "Switch profile",
+        "category": "Profiles",
         "params": [
           { "name": "profile_id", "label": "Profile", "type": "profile", "required": true }
         ]
@@ -35,12 +47,22 @@
       {
         "type": "next_profile",
         "name": "Next profile",
+        "category": "Profiles",
         "params": []
       },
       {
         "type": "previous_profile",
         "name": "Previous profile",
+        "category": "Profiles",
         "params": []
+      },
+      {
+        "type": "plugin.dev.jonidg.spotify.play_pause",
+        "name": "Play / Pause",
+        "category": "Audio",
+        "params": [
+          { "name": "volume_encoder", "label": "Volume encoder", "type": "input", "required": false, "input_filter": { "kinds": ["encoder"] } }
+        ]
       }
     ]
   }

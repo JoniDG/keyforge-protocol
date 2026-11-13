@@ -1,0 +1,16 @@
+{
+  "type": "request",
+  "id": "9b2f6d41-3c7e-4a8b-a5d0-6e1f2c8b4a97",
+  "method": "set_binding",
+  "params": {
+    "binding": {
+      "device_id": "VID_1234_PID_5678",
+      "input_id": "key_0x07",
+      "trigger": "press",
+      "action": {
+        "type": "open_url",
+        "params": { "url": "https://example.com" }
+      }
+    }
+  }
+}

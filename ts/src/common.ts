@@ -163,6 +163,18 @@ export interface LaunchAppActionParams {
   path: string;
 }
 /**
+ * Params for the built-in 'open_url' action: opens a web page in the OS default browser. Its descriptor announces 'url' as a ParamSpec of type 'string' with an example URL as placeholder.
+ *
+ * This interface was referenced by `CommonTypes`'s JSON-Schema
+ * via the `definition` "OpenUrlActionParams".
+ */
+export interface OpenUrlActionParams {
+  /**
+   * Absolute URL to open. Only 'http' and 'https' are accepted, so a binding cannot open local files or custom URL handlers; keyforge-core also checks it is a well-formed URL when the binding is saved.
+   */
+  url: string;
+}
+/**
  * Params for the built-in 'delay' action: waits for the given duration. Mainly useful as a step inside a macro.
  *
  * This interface was referenced by `CommonTypes`'s JSON-Schema
@@ -584,7 +596,7 @@ export interface PluginManifest {
    */
   homepage?: string;
   /**
-   * Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').
+   * Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming'). The daemon copies it into ActionDescriptor.category of each of the plugin's actions in list_actions; when omitted, the plugin name is used instead. Reusing a built-in category (e.g. 'Media') groups the plugin's actions with the built-ins.
    */
   category?: string;
   /**

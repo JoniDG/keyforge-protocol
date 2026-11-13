@@ -24,6 +24,16 @@ type Action struct {
 
 // Describes a bindable action type and the params it accepts.
 type ActionDescriptor struct {
+	// Group the UI lists the action under (e.g. 'Media'). Free text, compared by
+	// exact match: a plugin action with the same category as a built-in shares its
+	// group. Built-ins use 'System', 'Media', 'Profiles', 'Lighting' and 'Logic';
+	// plugins may reuse them. For a plugin action the daemon fills it from
+	// PluginManifest.category, or from PluginManifest.name when the manifest has
+	// none, so plugin actions always have one. Omitted = uncategorized: the client
+	// lists it under an 'Other' group at the end, or, when no action has a category
+	// (an older daemon), shows a flat list.
+	Category *string `json:"category,omitempty,omitzero" yaml:"category,omitempty" mapstructure:"category,omitempty"`
+
 	// Optional longer description of what the action does.
 	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty" mapstructure:"description,omitempty"`
 
@@ -56,6 +66,9 @@ func (j *ActionDescriptor) UnmarshalJSON(value []byte) error {
 	var plain Plain
 	if err := json.Unmarshal(value, &plain); err != nil {
 		return err
+	}
+	if plain.Category != nil && utf8.RuneCountInString(string(*plain.Category)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "category", 1)
 	}
 	if utf8.RuneCountInString(string(plain.Name)) < 1 {
 		return fmt.Errorf("field %s length: must be >= %d", "name", 1)
@@ -2282,6 +2295,9 @@ type ListActionsSchemaJsonParams map[string]interface{}
 
 type ListActionsSchemaJsonResult struct {
 	// All actions available to bind. Built-ins plus any registered plugin actions.
+	// The order is meaningful: a client groups actions by ActionDescriptor.category,
+	// lists the groups in the order each category first appears here and the actions
+	// of a group in list order, with uncategorized actions last.
 	Actions []ActionDescriptor `json:"actions" yaml:"actions" mapstructure:"actions"`
 }
 
@@ -2591,6 +2607,40 @@ func (j *MacroActionParams) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s length: must be >= %d", "steps", 1)
 	}
 	*j = MacroActionParams(plain)
+	return nil
+}
+
+// Params for the built-in 'open_url' action: opens a web page in the OS default
+// browser. Its descriptor announces 'url' as a ParamSpec of type 'string' with an
+// example URL as placeholder.
+type OpenUrlActionParams struct {
+	// Absolute URL to open. Only 'http' and 'https' are accepted, so a binding cannot
+	// open local files or custom URL handlers; keyforge-core also checks it is a
+	// well-formed URL when the binding is saved.
+	Url string `json:"url" yaml:"url" mapstructure:"url"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *OpenUrlActionParams) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["url"]; raw != nil && !ok {
+		return fmt.Errorf("field url in OpenUrlActionParams: required")
+	}
+	type Plain OpenUrlActionParams
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[Hh][Tt][Tt][Pp][Ss]?://`, string(plain.Url)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Url", `^[Hh][Tt][Tt][Pp][Ss]?://`)
+	}
+	if utf8.RuneCountInString(string(plain.Url)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "url", 1)
+	}
+	*j = OpenUrlActionParams(plain)
 	return nil
 }
 
@@ -2969,6 +3019,10 @@ type PluginManifest struct {
 	Author *string `json:"author,omitempty,omitzero" yaml:"author,omitempty" mapstructure:"author,omitempty"`
 
 	// Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').
+	// The daemon copies it into ActionDescriptor.category of each of the plugin's
+	// actions in list_actions; when omitted, the plugin name is used instead. Reusing
+	// a built-in category (e.g. 'Media') groups the plugin's actions with the
+	// built-ins.
 	Category *string `json:"category,omitempty,omitzero" yaml:"category,omitempty" mapstructure:"category,omitempty"`
 
 	// Short description of what the plugin does.

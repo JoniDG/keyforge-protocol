@@ -55,7 +55,7 @@
         "type": {
           "type": "string",
           "description": "Action type. Built-ins are well-known; plugin actions use 'plugin.<plugin_id>.<action_id>'. Plugin ids are reverse-DNS (they contain dots) and action ids never do, so the action id is everything after the last dot.",
-          "examples": ["launch_app", "send_keys", "delay", "macro", "toggle", "set_color", "switch_profile", "next_profile", "previous_profile", "set_variable", "if", "http_request", "plugin.dev.jonidg.spotify.play_pause"]
+          "examples": ["launch_app", "send_keys", "open_url", "delay", "macro", "toggle", "set_color", "switch_profile", "next_profile", "previous_profile", "set_variable", "if", "http_request", "plugin.dev.jonidg.spotify.play_pause"]
         },
         "params": {
           "type": "object",
@@ -87,6 +87,22 @@
         "path": {
           "type": "string",
           "description": "Absolute path to the application, file or folder to open, in the native format of the OS the daemon runs on.",
+          "minLength": 1
+        }
+      }
+    },
+    "OpenUrlActionParams": {
+      "title": "OpenUrlActionParams",
+      "description": "Params for the built-in 'open_url' action: opens a web page in the OS default browser. Its descriptor announces 'url' as a ParamSpec of type 'string' with an example URL as placeholder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Absolute URL to open. Only 'http' and 'https' are accepted, so a binding cannot open local files or custom URL handlers; keyforge-core also checks it is a well-formed URL when the binding is saved.",
+          "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://",
+          "examples": ["https://example.com"],
           "minLength": 1
         }
       }
@@ -637,7 +653,7 @@
         },
         "category": {
           "type": "string",
-          "description": "Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').",
+          "description": "Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming'). The daemon copies it into ActionDescriptor.category of each of the plugin's actions in list_actions; when omitted, the plugin name is used instead. Reusing a built-in category (e.g. 'Media') groups the plugin's actions with the built-ins.",
           "minLength": 1
         },
         "icon": {
