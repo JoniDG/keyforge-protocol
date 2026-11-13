@@ -187,6 +187,18 @@ Para que `launch_app` (y cualquier plugin) pida una ruta con un selector nativo 
 - **`launch_app`** anuncia `path` como `{type: "path", path_kind: "app"}` (decisión del owner) sin restringir la acción: sigue abriendo archivos o carpetas si se tipea, pega o suelta la ruta. Se corrigió la descripción de `LaunchAppActionParams` ("application, file or folder"). Ojo: en Linux core hoy hace `exec.Command(path)`, así que solo lanza ejecutables.
 - **Compatibilidad:** un desktop viejo cae a un campo de texto (el valor es string igual). Un consumidor **Go** viejo, en cambio, rechaza el valor nuevo del enum y falla entera la respuesta de `list_actions` y los métodos y archivos con `PluginManifest`. Es el mismo costo que con `input`/`profile`; se aceptó porque core y desktop salen juntos.
 
+## Categorías de acciones + `open_url` (DECIDIDO 2026-11-12)
+
+Para que la GUI agrupe el selector de acciones al estilo Stream Deck.
+
+- **`ActionDescriptor.category?`**: string libre (`minLength 1`), simétrico a `PluginManifest.category`. Se descartó un enum: cada categoría nueva rompería a un consumidor Go viejo, y las acciones de plugin igual necesitan texto libre. Contra aceptado: la GUI no puede asociar íconos ni traducciones a una categoría, y los typos (`media`/`Media`) son posibles. Se compara por **igualdad exacta**: un plugin con `Media` comparte grupo con las built-in.
+- **Nombres de las built-in** (guía para plugins, documentada en la descripción, no forzada): `System` (`launch_app`, `send_keys`, `open_url`), `Media` (las 6 acciones multimedia que suma core), `Profiles` (`switch_profile`, `next_profile`, `previous_profile`), `Lighting` (`set_color`), `Logic` (`delay`, `macro`, `toggle`, `set_variable`, `if`).
+- **Acciones de plugin:** el daemon completa el descriptor con `manifest.category`, o con `manifest.name` si falta, así una acción de plugin siempre tiene categoría y la GUI no cruza con `list_plugins`. `PluginAction.category` (por acción) queda fuera de v1, aditivo.
+- **Orden:** los grupos van en el orden en que aparece por primera vez su categoría en `list_actions`, y las acciones de cada grupo en el orden de la lista. Core controla el orden y desktop no hardcodea nada.
+- **Sin categoría:** grupo "Other" al final. Si ninguna acción trae categoría (daemon viejo), lista plana como antes.
+- **`$def OpenUrlActionParams {url}`** para la built-in `open_url` ("Open website"): abre la URL en el navegador por defecto. El descriptor anuncia `url` como `ParamSpec` `string` con placeholder `https://example.com` (decisión del owner: sin tipo `url` nuevo, que rompería a un consumidor Go viejo). Solo `http`/`https`: el schema lo exige con un `pattern` RE2 sobre el prefijo (`^[Hh][Tt][Tt][Pp][Ss]?://`) y `keyforge-core` lo vuelve a validar al guardar el binding (nada de `file:` ni handlers custom).
+- Aditivo (0.25.0): campo opcional y `$def` nuevos, sin valores de enum nuevos.
+
 ## Perfiles y auto-switch (DECIDIDO 2026-10-03)
 
 Ningún método deja reglas de auto-switch apuntando a un perfil inexistente. No se expresa en el schema (necesita estado); lo aplica `keyforge-core` y queda escrito en las descripciones. Un archivo de config editado a mano puede igual tener reglas huérfanas.

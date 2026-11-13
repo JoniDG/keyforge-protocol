@@ -24,6 +24,10 @@ class ActionDescriptor(TypedDict, closed=True):
     """
     Optional longer description of what the action does.
     """
+    category: NotRequired[str]
+    """
+    Group the UI lists the action under (e.g. 'Media'). Free text, compared by exact match: a plugin action with the same category as a built-in shares its group. Built-ins use 'System', 'Media', 'Profiles', 'Lighting' and 'Logic'; plugins may reuse them. For a plugin action the daemon fills it from PluginManifest.category, or from PluginManifest.name when the manifest has none, so plugin actions always have one. Omitted = uncategorized: the client lists it under an 'Other' group at the end, or, when no action has a category (an older daemon), shows a flat list.
+    """
     params: list[common_schema.ParamSpec]
     """
     Params this action accepts, in display order.
@@ -33,7 +37,7 @@ class ActionDescriptor(TypedDict, closed=True):
 class Result(TypedDict, closed=True):
     actions: list[ActionDescriptor]
     """
-    All actions available to bind. Built-ins plus any registered plugin actions.
+    All actions available to bind. Built-ins plus any registered plugin actions. The order is meaningful: a client groups actions by ActionDescriptor.category, lists the groups in the order each category first appears here and the actions of a group in list order, with uncategorized actions last.
     """
 
 

@@ -94,7 +94,7 @@ export interface PluginManifest {
    */
   homepage?: string;
   /**
-   * Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming').
+   * Category the UI groups the plugin's actions under (e.g. 'Audio', 'Streaming'). The daemon copies it into ActionDescriptor.category of each of the plugin's actions in list_actions; when omitted, the plugin name is used instead. Reusing a built-in category (e.g. 'Media') groups the plugin's actions with the built-ins.
    */
   category?: string;
   /**
